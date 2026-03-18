@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">ShopMate DSS</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_products">Inventory</string>
+    <string name="title_history">Sales History</string>
+    <string name="title_analytics">Analytics</string>
+    <string name="title_alerts">Alerts</string>
+    <string name="alert_action_required">🚨 Action Required — %d products are below threshold</string>
+    <string name="alert_stock_healthy">✅ All stock levels are healthy</string>
+    <string name="alert_stock_left">⚠ Only %1$s left (threshold: %2$d)</string>
+    <string name="alert_suggest_restock">Suggest restocking %.1f units (7-day buffer)</string>
+    <string name="alert_calculating">Calculating suggestion...</string>
+</resources>

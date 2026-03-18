@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/navigation_dashboard">
+
+    <fragment
+        android:id="@+id/navigation_dashboard"
+        android:name="com.example.inventory.ui.dashboard.DashboardFragment"
+        android:title="Dashboard"
+        tools:layout="@layout/fragment_dashboard">
+        <action
+            android:id="@+id/action_dashboard_to_sell"
+            app:destination="@id/sellFragment"
+            app:launchSingleTop="true" />
+        <action
+            android:id="@+id/action_dashboard_to_restock"
+            app:destination="@id/restockFragment"
+            app:launchSingleTop="true" />
+        <action
+            android:id="@+id/action_dashboard_to_addProduct"
+            app:destination="@id/addProductFragment"
+            app:launchSingleTop="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_products"
+        android:name="com.example.inventory.ui.product.ProductListFragment"
+        android:title="Inventory"
+        tools:layout="@layout/fragment_product_list">
+        <action
+            android:id="@+id/action_productList_to_productDetail"
+            app:destination="@id/productDetailFragment"
+            app:launchSingleTop="true" />
+        <action
+            android:id="@+id/action_productList_to_addProduct"
+            app:destination="@id/addProductFragment"
+            app:launchSingleTop="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_history"
+        android:name="com.example.inventory.ui.sales.SalesHistoryFragment"
+        android:title="Sales History"
+        tools:layout="@layout/fragment_sales_history" />
+
+    <fragment
+        android:id="@+id/navigation_analytics"
+        android:name="com.example.inventory.ui.analytics.AnalyticsFragment"
+        android:title="Analytics"
+        tools:layout="@layout/fragment_analytics" />
+
+    <fragment
+        android:id="@+id/navigation_settings"
+        android:name="com.example.inventory.ui.settings.SettingsFragment"
+        android:title="Settings"
+        tools:layout="@layout/fragment_settings" />
+
+    <fragment
+        android:id="@+id/navigation_alerts"
+        android:name="com.example.inventory.ui.alerts.LowStockAlertsFragment"
+        android:title="Alerts"
+        tools:layout="@layout/fragment_low_stock_alerts" />
+
+    <fragment
+        android:id="@+id/productDetailFragment"
+        android:name="com.example.inventory.ui.product.ProductDetailFragment"
+        android:title="Product Details"
+        tools:layout="@layout/fragment_product_detail">
+        <argument
+            android:name="barcode"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_productDetail_to_sell"
+            app:destination="@id/sellFragment"
+            app:launchSingleTop="true" />
+        <action
+            android:id="@+id/action_productDetail_to_restock"
+            app:destination="@id/restockFragment"
+            app:launchSingleTop="true" />
+        <action
+            android:id="@+id/action_productDetail_to_editProduct"
+            app:destination="@id/editProductFragment"
+            app:launchSingleTop="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addProductFragment"
+        android:name="com.example.inventory.ui.product.AddProductFragment"
+        android:title="Add Product"
+        tools:layout="@layout/fragment_add_product">
+        <argument
+            android:name="barcode"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editProductFragment"
+        android:name="com.example.inventory.ui.product.EditProductFragment"
+        android:title="Edit Product"
+        tools:layout="@layout/fragment_edit_product">
+        <argument
+            android:name="barcode"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/sellFragment"
+        android:name="com.example.inventory.ui.sales.SellFragment"
+        android:title="Sell Product"
+        tools:layout="@layout/fragment_sell">
+        <argument
+            android:name="barcode"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/restockFragment"
+        android:name="com.example.inventory.ui.restock.RestockFragment"
+        android:title="Restock Product"
+        tools:layout="@layout/fragment_restock">
+        <argument
+            android:name="barcode"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <dialog
+        android:id="@+id/scanResultBottomSheet"
+        android:name="com.example.inventory.ui.ScanResultBottomSheet"
+        android:title="Scan Result"
+        tools:layout="@layout/bottom_sheet_scan_result" />
+
+</navigation>

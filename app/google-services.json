@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "179379701629",
+    "project_id": "inventory-b5903",
+    "storage_bucket": "inventory-b5903.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179379701629:android:4b2ecd9ec1ac2e2c41ae14",
+        "android_client_info": {
+          "package_name": "com.example.inventory"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfMgAJzOH-KxicJXclRSkaZyWwL4dn10Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179379701629:android:d7b12975364826d541ae14",
+        "android_client_info": {
+          "package_name": "com.shopmate.dss"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfMgAJzOH-KxicJXclRSkaZyWwL4dn10Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
