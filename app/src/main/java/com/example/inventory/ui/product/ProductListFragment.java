@@ -13,30 +13,29 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.GridLayoutManager;
 
-import com.bumptech.glide.Glide;
 import com.example.inventory.R;
 import com.example.inventory.databinding.FragmentProductListBinding;
 import com.example.inventory.databinding.ItemProductBinding;
 import com.example.inventory.model.ProductModel;
-import com.example.inventory.utils.CategoryHelper;
 import com.example.inventory.viewmodel.ProductViewModel;
 import com.google.android.material.chip.Chip;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class ProductListFragment extends Fragment {
 
     private FragmentProductListBinding binding;
     private ProductViewModel viewModel;
     private ProductAdapter adapter;
-    private String selectedFilter = "All";
+    private List<ProductModel> allProducts = new ArrayList<>();
+    private String currentFilter = "all";
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -57,10 +56,14 @@ public class ProductListFragment extends Fragment {
                 Navigation.findNavController(v).navigate(R.id.addProductFragment)
         );
 
+        binding.looseItemButton.setOnClickListener(v ->
+                Navigation.findNavController(v).navigate(R.id.navigation_loose_item));
+
         viewModel.getAllProducts().observe(getViewLifecycleOwner(), products -> {
             if (products != null) {
-                adapter.setFullList(products);
-                applyFilters();
+                allProducts = products;
+                updateCategoryChips(products);
+                applyFilter(currentFilter);
             }
         });
     }
@@ -71,7 +74,7 @@ public class ProductListFragment extends Fragment {
             args.putString("barcode", product.getBarcode());
             Navigation.findNavController(binding.getRoot()).navigate(R.id.productDetailFragment, args);
         });
-        binding.productRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        binding.productRecyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
         binding.productRecyclerView.setAdapter(adapter);
     }
 
@@ -81,7 +84,7 @@ public class ProductListFragment extends Fragment {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                applyFilters();
+                applyFilter(currentFilter);
             }
             @Override
             public void afterTextChanged(Editable s) {}
@@ -89,56 +92,95 @@ public class ProductListFragment extends Fragment {
     }
 
     private void setupFilterChips() {
-        String userId = FirebaseAuth.getInstance().getUid();
-        if (userId == null) return;
-
-        FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("settings").document("shopInfo")
-                .get().addOnSuccessListener(documentSnapshot -> {
-                    if (binding == null) return;
-
-                    if (documentSnapshot.exists()) {
-                        String shopType = documentSnapshot.getString("shopType");
-                        List<String> categories = CategoryHelper.getCategoriesForShopType(shopType);
-                        if (categories != null) {
-                            for (String category : categories) {
-                                Chip chip = new Chip(requireContext());
-                                chip.setText(category);
-                                chip.setCheckable(true);
-                                chip.setClickable(true);
-                                binding.filterChipGroup.addView(chip);
-                            }
-                        }
-                    }
-                });
-
         binding.filterChipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (binding == null) return;
-
             if (checkedIds.isEmpty()) {
-                selectedFilter = "All";
                 binding.chipAll.setChecked(true);
+                applyFilter("all");
             } else {
                 int id = checkedIds.get(0);
                 if (id == R.id.chipAll) {
-                    selectedFilter = "All";
+                    applyFilter("all");
                 } else if (id == R.id.chipLowStock) {
-                    selectedFilter = "Low Stock";
+                    applyFilter("low_stock");
+                } else if (id == R.id.chipLooseItems) {
+                    applyFilter("loose_items");
                 } else {
                     Chip chip = group.findViewById(id);
                     if (chip != null) {
-                        selectedFilter = chip.getText().toString();
+                        applyFilter(chip.getText().toString());
                     }
                 }
             }
-            applyFilters();
         });
     }
 
-    private void applyFilters() {
+    private void updateCategoryChips(List<ProductModel> products) {
         if (binding == null) return;
+        
+        // Keep the static chips
+        int childCount = binding.filterChipGroup.getChildCount();
+        for (int i = childCount - 1; i >= 0; i--) {
+            View child = binding.filterChipGroup.getChildAt(i);
+            int id = child.getId();
+            if (id != R.id.chipAll && id != R.id.chipLowStock && id != R.id.chipLooseItems) {
+                binding.filterChipGroup.removeViewAt(i);
+            }
+        }
+
+        Set<String> categories = new HashSet<>();
+        for (ProductModel p : products) {
+            if (p.getCategory() != null && !p.getCategory().isEmpty()) {
+                categories.add(p.getCategory());
+            }
+        }
+
+        for (String category : categories) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(category);
+            chip.setCheckable(true);
+            chip.setClickable(true);
+            binding.filterChipGroup.addView(chip);
+        }
+    }
+
+    private void applyFilter(String filter) {
+        currentFilter = filter;
+        if (allProducts == null) return;
+        
         String query = binding.searchEditText.getText().toString().toLowerCase();
-        adapter.filter(query, selectedFilter);
+        List<ProductModel> filtered = new ArrayList<>();
+        
+        for (ProductModel p : allProducts) {
+            boolean matchesQuery = p.getName().toLowerCase().contains(query) || p.getBarcode().contains(query);
+            if (!matchesQuery) continue;
+
+            boolean matchesFilter = false;
+            switch (filter) {
+                case "low_stock":
+                    double stock = ProductModel.isDecimalUnit(p.getUnit()) ? p.getCurrentStockDecimal() : p.getCurrentStock();
+                    int thresh = (p.getLowStockThreshold() > 0)
+                            ? p.getLowStockThreshold()
+                            : com.example.inventory.utils.AppPrefs.DEFAULT_THRESHOLD;
+                    if (stock <= thresh) matchesFilter = true;
+                    break;
+                case "all":
+                    matchesFilter = true;
+                    break;
+                case "loose_items":
+                    if (p.getBarcode() != null && p.getBarcode().startsWith("LOOSE")) matchesFilter = true;
+                    break;
+                default:
+                    // category filter
+                    if (filter.equals(p.getCategory())) matchesFilter = true;
+                    break;
+            }
+
+            if (matchesFilter) filtered.add(p);
+        }
+        
+        adapter.setProducts(filtered);
+        binding.emptyStateText.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -147,11 +189,8 @@ public class ProductListFragment extends Fragment {
         binding = null;
     }
 
-    // --- Adapter ---
-
     private static class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHolder> {
         private List<ProductModel> products = new ArrayList<>();
-        private List<ProductModel> fullList = new ArrayList<>();
         private final OnProductClickListener listener;
 
         interface OnProductClickListener {
@@ -162,33 +201,8 @@ public class ProductListFragment extends Fragment {
             this.listener = listener;
         }
 
-        void setFullList(List<ProductModel> products) {
-            this.fullList = products;
-        }
-
-        void filter(String query, String categoryFilter) {
-            List<ProductModel> filtered = new ArrayList<>();
-            for (ProductModel p : fullList) {
-                boolean matchesQuery = p.getName().toLowerCase().contains(query) || p.getBarcode().contains(query);
-                boolean matchesFilter;
-
-                if (categoryFilter.equals("All")) {
-                    matchesFilter = true;
-                } else if (categoryFilter.equals("Low Stock")) {
-                    if (ProductModel.isDecimalUnit(p.getUnit())) {
-                        matchesFilter = p.getCurrentStockDecimal() < p.getLowStockThreshold();
-                    } else {
-                        matchesFilter = p.getCurrentStock() < p.getLowStockThreshold();
-                    }
-                } else {
-                    matchesFilter = categoryFilter.equals(p.getCategory());
-                }
-
-                if (matchesQuery && matchesFilter) {
-                    filtered.add(p);
-                }
-            }
-            this.products = filtered;
+        void setProducts(List<ProductModel> products) {
+            this.products = products;
             notifyDataSetChanged();
         }
 
@@ -210,17 +224,29 @@ public class ProductListFragment extends Fragment {
             holder.binding.productPrice.setText(
                     String.format(Locale.getDefault(), "₹%.2f", product.getPrice()));
 
-            Glide.with(holder.itemView.getContext())
-                    .load(product.getImageUrl())
-                    .placeholder(R.drawable.ic_image_placeholder)
-                    .error(R.drawable.ic_image_placeholder)
-                    .circleCrop()
-                    .into(holder.binding.productImage);
+            String b64 = product.getImageBase64();
+            if (b64 != null && !b64.isEmpty()) {
+                try {
+                    byte[] bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                    android.graphics.Bitmap bmp = android.graphics.BitmapFactory
+                        .decodeByteArray(bytes, 0, bytes.length);
+                    if (bmp != null) {
+                        holder.binding.productImage.setImageBitmap(bmp);
+                    } else {
+                        holder.binding.productImage.setImageResource(R.drawable.ic_image_placeholder);
+                    }
+                } catch (Exception ex) {
+                    holder.binding.productImage.setImageResource(R.drawable.ic_image_placeholder);
+                }
+            } else {
+                holder.binding.productImage.setImageResource(R.drawable.ic_image_placeholder);
+            }
 
-            // New feature: Stock status badge
             double stock = ProductModel.isDecimalUnit(product.getUnit()) ?
                     product.getCurrentStockDecimal() : product.getCurrentStock();
-            int threshold = product.getLowStockThreshold();
+            int threshold = (product.getLowStockThreshold() > 0)
+                    ? product.getLowStockThreshold()
+                    : com.example.inventory.utils.AppPrefs.DEFAULT_THRESHOLD;
 
             if (stock <= 0) {
                 holder.binding.stockBadge.setText("OUT");
@@ -230,10 +256,6 @@ public class ProductListFragment extends Fragment {
                 holder.binding.stockBadge.setText("LOW");
                 holder.binding.stockBadge.setBackgroundTintList(ColorStateList.valueOf(0xFFFEF3C7));
                 holder.binding.stockBadge.setTextColor(0xFFD97706);
-            } else if (stock < threshold * 2) {
-                holder.binding.stockBadge.setText("MID");
-                holder.binding.stockBadge.setBackgroundTintList(ColorStateList.valueOf(0xFFFEF3C7));
-                holder.binding.stockBadge.setTextColor(0xFFB45309); // Slightly different shade of amber/orange
             } else {
                 holder.binding.stockBadge.setText("OK");
                 holder.binding.stockBadge.setBackgroundTintList(ColorStateList.valueOf(0xFFD1FAE5));

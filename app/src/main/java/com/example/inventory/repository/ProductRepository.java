@@ -42,7 +42,13 @@ public class ProductRepository {
     }
 
     public void deleteProduct(String barcode) {
-        getProductsRef().document(barcode).delete();
+        getProductsRef().document(barcode).delete().addOnSuccessListener(aVoid -> {
+            if (barcode.startsWith("LOOSE")) {
+                db.collection("users").document(userId)
+                        .collection("looseItems").document(barcode)
+                        .delete();
+            }
+        });
     }
 
     public LiveData<ProductModel> getProduct(String barcode) {
@@ -93,7 +99,7 @@ public class ProductRepository {
         return productsList;
     }
 
-    public LiveData<List<ProductModel>> getLowStockProducts() {
+    public LiveData<List<ProductModel>> getLowStockProducts(int fallbackThreshold) {
         MutableLiveData<List<ProductModel>> productsList = new MutableLiveData<>();
         getProductsRef().addSnapshotListener((value, error) -> {
             if (value != null) {
@@ -101,19 +107,27 @@ public class ProductRepository {
                 for (DocumentSnapshot doc : value.getDocuments()) {
                     ProductModel p = doc.toObject(ProductModel.class);
                     if (p != null) {
-                        boolean isLow = false;
-                        if (ProductModel.isDecimalUnit(p.getUnit())) {
-                            isLow = p.getCurrentStockDecimal() < p.getLowStockThreshold();
-                        } else {
-                            isLow = p.getCurrentStock() < p.getLowStockThreshold();
+                        double effectiveStock = (p.getUnit() != null &&
+                            (p.getUnit().equalsIgnoreCase("kg") || p.getUnit().equalsIgnoreCase("g") ||
+                             p.getUnit().equalsIgnoreCase("l")  || p.getUnit().equalsIgnoreCase("ml")))
+                            ? p.getCurrentStockDecimal()
+                            : (double) p.getCurrentStock();
+                        int threshold = (p.getLowStockThreshold() > 0)
+                            ? p.getLowStockThreshold()
+                            : fallbackThreshold;
+                        if (effectiveStock <= threshold) {
+                            list.add(p);
                         }
-                        if (isLow) list.add(p);
                     }
                 }
                 productsList.setValue(list);
             }
         });
         return productsList;
+    }
+
+    public LiveData<List<ProductModel>> getLowStockProducts() {
+        return getLowStockProducts(com.example.inventory.utils.AppPrefs.DEFAULT_THRESHOLD);
     }
 
     public LiveData<List<ProductModel>> getExpiringProducts() {
@@ -123,19 +137,19 @@ public class ProductRepository {
         Timestamp thirtyDaysFromNow = new Timestamp(cal.getTime());
 
         getProductsRef()
-            .whereLessThanOrEqualTo("expiryDate", thirtyDaysFromNow)
-            .addSnapshotListener((value, error) -> {
-                if (value != null) {
-                    List<ProductModel> list = new ArrayList<>();
-                    for (DocumentSnapshot doc : value.getDocuments()) {
-                        ProductModel p = doc.toObject(ProductModel.class);
-                        if (p != null && p.getExpiryDate() != null) {
-                            list.add(p);
+                .whereLessThanOrEqualTo("expiryDate", thirtyDaysFromNow)
+                .addSnapshotListener((value, error) -> {
+                    if (value != null) {
+                        List<ProductModel> list = new ArrayList<>();
+                        for (DocumentSnapshot doc : value.getDocuments()) {
+                            ProductModel p = doc.toObject(ProductModel.class);
+                            if (p != null && p.getExpiryDate() != null) {
+                                list.add(p);
+                            }
                         }
+                        productsList.setValue(list);
                     }
-                    productsList.setValue(list);
-                }
-            });
+                });
         return productsList;
     }
 }

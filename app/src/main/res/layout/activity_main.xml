@@ -1,60 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/backround"
+    android:fitsSystemWindows="true">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            app:titleTextColor="@android:color/white"
-            app:title="My Shop" />
-
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/nav_host_fragment"
-        android:name="androidx.navigation.fragment.NavHostFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:defaultNavHost="true"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        app:navGraph="@navigation/nav_graph" />
-
-    <com.google.android.material.bottomappbar.BottomAppBar
-        android:id="@+id/bottomAppBar"
+    <!-- Offline Banner — same id -->
+    <TextView
+        android:id="@+id/offlineBanner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        app:fabAlignmentMode="center">
+        android:background="#332B12"
+        android:gravity="center"
+        android:padding="8dp"
+        android:text="⚠ No internet — data may not be synced"
+        android:textColor="@color/warning"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone"/>
 
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/nav_view"
+    <!-- CoordinatorLayout needed for AppBarLayout + FAB anchor behavior -->
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- AppBarLayout — needed for setSupportActionBar + menu items (alerts, settings) -->
+        <com.google.android.material.appbar.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/bar_background"
+            app:elevation="0dp">
+
+            <!-- ID must stay "toolbar" — Java calls setSupportActionBar(binding.toolbar) -->
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="@color/bar_background"
+                app:titleTextColor="@color/badge"
+                app:title="ShopEase"
+                app:titleTextAppearance="@style/ToolbarTitleStyle"/>
+
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <!-- Thin separator line -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#0DFFFFFF"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            android:layout_marginTop="0dp"/>
+
+        <!-- Fragment container -->
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/nav_host_fragment"
+            android:name="androidx.navigation.fragment.NavHostFragment"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginEnd="16dp"
-            android:background="@android:color/transparent"
+            android:paddingBottom="0dp"
+            android:clipToPadding="false"
+            app:defaultNavHost="true"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            app:navGraph="@navigation/nav_graph"/>
+
+        <!-- BottomAppBar — ID must stay "bottomAppBar", Java sets visibility on it -->
+        <com.google.android.material.bottomappbar.BottomAppBar
+            android:id="@+id/bottomAppBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="#F5161526"
+            app:fabAlignmentMode="center"
             app:elevation="0dp"
-            app:menu="@menu/bottom_nav_menu" />
+            app:hideOnScroll="false">
 
-    </com.google.android.material.bottomappbar.BottomAppBar>
+            <!-- ID must stay "nav_view" — Java does binding.navView.setOnItemSelectedListener -->
+            <com.google.android.material.bottomnavigation.BottomNavigationView
+                android:id="@+id/nav_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="16dp"
+                android:background="@android:color/transparent"
+                app:elevation="0dp"
+                app:itemIconTint="@color/bottom_nav_item_color"
+                app:itemTextColor="@color/bottom_nav_item_color"
+                app:itemActiveIndicatorStyle="@style/BottomNavIndicatorStyle"
+                app:menu="@menu/bottom_nav_menu"/>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_scan"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@android:drawable/ic_menu_camera"
-        app:layout_anchor="@id/bottomAppBar"
-        app:backgroundTint="#00C896"
-        app:tint="@android:color/white"
-        app:fabCustomSize="60dp"
-        android:contentDescription="Scan Product" />
+        </com.google.android.material.bottomappbar.BottomAppBar>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+        <!-- FAB — ID must stay "fab_scan" -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_scan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_qr_scanner"
+            android:contentDescription="Scan Product"
+            app:layout_anchor="@id/bottomAppBar"
+            app:backgroundTint="@color/primary"
+            app:tint="@android:color/white"
+            app:fabCustomSize="56dp"
+            app:borderWidth="3dp"
+            app:strokeColor="@color/warning"
+            app:strokeWidth="3dp"/>
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

@@ -1,21 +1,25 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
     <style name="Theme.Inventory" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">@color/primary_container</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorPrimaryContainer">@color/tonal_purple</item>
+
         <item name="colorSecondary">@color/accent</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondary">@color/on_accent</item>
+
         <item name="colorSurface">@color/surface</item>
-        <item name="colorOnSurface">@color/on_surface</item>
-        <item name="colorSurfaceVariant">@color/surface</item>
-        <item name="colorOnSurfaceVariant">@color/on_surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+
+        <item name="colorSurfaceVariant">@color/bar_background</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+
         <item name="android:colorBackground">@color/background</item>
         <item name="android:windowBackground">@color/background</item>
-        <item name="android:statusBarColor">?android:attr/windowBackground</item>
-        <item name="android:windowLightStatusBar">true</item>
-    </style>
 
-    <style name="ShapeAppearanceOverlay.App.CornerSize50Percent" parent="">
-        <item name="cornerSize">50%</item>
+        <item name="android:statusBarColor">@color/bar_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+
+        <item name="bottomNavigationStyle">@style/BottomNavStyle</item>
     </style>
 </resources>

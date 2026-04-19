@@ -1,6 +1,7 @@
 package com.example.inventory.ui.product;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -16,11 +17,10 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
-import com.bumptech.glide.Glide;
-import com.example.inventory.MainActivity;
 import com.example.inventory.R;
 import com.example.inventory.databinding.FragmentProductDetailBinding;
 import com.example.inventory.model.ProductModel;
+import com.example.inventory.utils.AppPrefs;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -64,7 +64,7 @@ public class ProductDetailFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+        super.onViewCreated(super.getContext() != null ? view : null, savedInstanceState);
 
         if (barcode == null || userId == null) {
             Toast.makeText(getContext(), "Error: Missing product data", Toast.LENGTH_SHORT).show();
@@ -86,18 +86,18 @@ public class ProductDetailFragment extends Fragment {
 
     private void setupButtons() {
         binding.sellButton.setOnClickListener(v -> {
-            if (currentProduct != null) {
-                com.example.inventory.MainActivity activity =
-                    (com.example.inventory.MainActivity) requireActivity();
-                activity.showScanResultForProduct(currentProduct);
+            if (barcode != null) {
+                Bundle args = new Bundle();
+                args.putString("barcode", barcode);
+                Navigation.findNavController(v).navigate(R.id.sellFragment, args);
             }
         });
         
         binding.restockButton.setOnClickListener(v -> {
-            if (currentProduct != null) {
-                com.example.inventory.MainActivity activity =
-                    (com.example.inventory.MainActivity) requireActivity();
-                activity.showScanResultForProduct(currentProduct);
+            if (barcode != null) {
+                Bundle args = new Bundle();
+                args.putString("barcode", barcode);
+                Navigation.findNavController(v).navigate(R.id.restockFragment, args);
             }
         });
         
@@ -131,17 +131,23 @@ public class ProductDetailFragment extends Fragment {
     private void updateProductUI(ProductModel product) {
         this.currentProduct = product;
         binding.productName.setText(product.getName());
-        binding.productCategory.setText(product.getCategory() + " • " + product.getUnit());
+        binding.productCategory.setText(product.getCategory() );
         binding.barcodeChip.setText(product.getBarcode());
-        binding.stockCount.setText(String.valueOf(product.getCurrentStock()));
+        if (com.example.inventory.model.ProductModel.isDecimalUnit(product.getUnit())) {
+            binding.stockCount.setText(
+                String.valueOf(product.getCurrentStockDecimal()+ " " + product.getUnit()));
+        } else {
+            binding.stockCount.setText(
+                String.valueOf(product.getCurrentStock()+ " " + product.getUnit()));
+        }
         binding.sellPrice.setText(String.format(Locale.getDefault(), "₹%.2f", product.getPrice()));
-        binding.supplierValue.setText(product.getSupplier() != null ? product.getSupplier() : "N/A");
 
-        Glide.with(this)
-                .load(product.getImageUrl())
-                .placeholder(R.drawable.ic_image_placeholder)
-                .circleCrop()
-                .into(binding.productImage);
+        android.graphics.Bitmap bmp = product.getImageBitmap();
+        if (bmp != null) {
+            binding.productImage.setImageBitmap(bmp);
+        } else {
+            binding.productImage.setImageResource(R.drawable.ic_image_placeholder);
+        }
 
         if (product.getExpiryDate() != null) {
             long diffInMillis = product.getExpiryDate().toDate().getTime() - new Date().getTime();
@@ -157,24 +163,90 @@ public class ProductDetailFragment extends Fragment {
         } else {
             binding.expiryWarning.setVisibility(View.GONE);
         }
+
+        // ── Per-product threshold override ───────────────────────────
+        SharedPreferences prefs = requireContext()
+                .getSharedPreferences(AppPrefs.PREFS_NAME, Context.MODE_PRIVATE);
+        int globalThreshold = prefs.getInt(AppPrefs.KEY_THRESHOLD, AppPrefs.DEFAULT_THRESHOLD);
+
+        // Show current effective threshold
+        int effectiveThreshold = product.getEffectiveThreshold(globalThreshold);
+        binding.productCustomThresholdValue.setText(String.valueOf(effectiveThreshold));
+
+        binding.productThresholdMinus.setOnClickListener(v -> {
+            try {
+                int current = Integer.parseInt(
+                    binding.productCustomThresholdValue.getText().toString());
+                if (current > 1) {
+                    binding.productCustomThresholdValue.setText(
+                        String.valueOf(current - 1));
+                }
+            } catch (NumberFormatException ignored) {}
+        });
+
+        binding.productThresholdPlus.setOnClickListener(v -> {
+            try {
+                int current = Integer.parseInt(
+                    binding.productCustomThresholdValue.getText().toString());
+                binding.productCustomThresholdValue.setText(
+                    String.valueOf(current + 1));
+            } catch (NumberFormatException ignored) {}
+        });
+
+        binding.productThresholdReset.setOnClickListener(v -> {
+            // -1 = use global
+            product.setCustomLowStockThreshold(-1);
+            binding.productCustomThresholdValue.setText(
+                String.valueOf(globalThreshold));
+            saveProductThreshold(product, -1);
+            Toast.makeText(getContext(),
+                "Reset to global threshold (" + globalThreshold + ")",
+                Toast.LENGTH_SHORT).show();
+        });
+
+        binding.productThresholdSave.setOnClickListener(v -> {
+            try {
+                int value = Integer.parseInt(
+                    binding.productCustomThresholdValue.getText().toString());
+                product.setCustomLowStockThreshold(value);
+                saveProductThreshold(product, value);
+                Toast.makeText(getContext(),
+                    "Custom threshold saved: " + value,
+                    Toast.LENGTH_SHORT).show();
+            } catch (NumberFormatException ignored) {}
+        });
+    }
+
+    private void saveProductThreshold(ProductModel product, int value) {
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(FirebaseAuth.getInstance().getCurrentUser().getUid())
+            .collection("products")
+            .document(product.getBarcode())
+            .update("customLowStockThreshold", value)
+            .addOnFailureListener(e ->
+                Toast.makeText(getContext(),
+                    "Failed to save threshold", Toast.LENGTH_SHORT).show());
     }
 
     private void updateAnalyticsUI(DocumentSnapshot snapshot) {
-        Long totalSold = snapshot.getLong("totalUnitsSold");
+        double totalSoldDouble = snapshot.getDouble("totalUnitsSold") != null
+                ? snapshot.getDouble("totalUnitsSold") : 0.0;
+        long totalSold = (long) totalSoldDouble;
         Double totalRevenue = snapshot.getDouble("totalRevenue");
-        Map<String, Long> dailySales = (Map<String, Long>) snapshot.get("dailySales");
+        Map<String, Object> dailySalesRaw = (Map<String, Object>) snapshot.get("dailySales");
 
-        binding.totalSoldValue.setText(String.valueOf(totalSold != null ? totalSold : 0));
+        binding.totalSoldValue.setText(String.valueOf(totalSold));
         binding.totalRevenueValue.setText(String.format(Locale.getDefault(), "₹%.2f", totalRevenue != null ? totalRevenue : 0.0));
 
-        if (dailySales != null && !dailySales.isEmpty()) {
-            processDailySales(dailySales);
+        if (dailySalesRaw != null && !dailySalesRaw.isEmpty()) {
+            processDailySales(dailySalesRaw);
         } else {
             showNoAnalyticsUI();
         }
     }
 
-    private void processDailySales(Map<String, Long> dailySales) {
+    private void processDailySales(Map<String, Object> dailySales) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         Calendar cal = Calendar.getInstance();
         List<Double> chartData = new ArrayList<>();
@@ -189,8 +261,12 @@ public class ProductDetailFragment extends Fragment {
         Collections.reverse(last7DaysKeys);
 
         for (String key : last7DaysKeys) {
-            long val = dailySales.containsKey(key) ? dailySales.get(key) : 0L;
-            chartData.add((double) val);
+            Object raw = dailySales.get(key);
+            double val = 0;
+            if (raw instanceof Number) {
+                val = ((Number) raw).doubleValue();
+            }
+            chartData.add(val);
             totalLast7Days += val;
         }
 
@@ -201,17 +277,17 @@ public class ProductDetailFragment extends Fragment {
         double avgPerDay = totalLast7Days / 7.0;
         binding.suggestionBox.setVisibility(View.VISIBLE);
 
-        int currentStock = 0;
+        double currentStock = 0;
         try {
-            currentStock = Integer.parseInt(binding.stockCount.getText().toString());
+            currentStock = Double.parseDouble(binding.stockCount.getText().toString());
         } catch (Exception ignored) {}
 
         if (avgPerDay > 0) {
             int daysLeft = (int) (currentStock / avgPerDay);
-            int suggestedRestock = (int) (avgPerDay * 7) - currentStock;
+            double suggestedRestock = (avgPerDay * 7) - currentStock;
             if (suggestedRestock < 0) suggestedRestock = 0;
             String suggestion = String.format(Locale.getDefault(),
-                "High-frequency seller (avg %.1f units/day).\nDays of stock left: ~%d days.\nSuggested restock: %d units (7-day buffer)",
+                "High-frequency seller (avg %.1f units/day).\nDays of stock left: ~%d days.\nSuggested restock: %.1f units (7-day buffer)",
                 avgPerDay, daysLeft, suggestedRestock);
             binding.suggestionText.setText(suggestion);
         } else {
@@ -246,6 +322,7 @@ public class ProductDetailFragment extends Fragment {
         private List<Double> data = new ArrayList<>();
         private final Paint barPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint valuePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         public MiniChartView(Context context) {
             super(context);
@@ -253,6 +330,10 @@ public class ProductDetailFragment extends Fragment {
             textPaint.setColor(0xFF757575);
             textPaint.setTextSize(24f);
             textPaint.setTextAlign(Paint.Align.CENTER);
+
+            valuePaint.setColor(0xFF212121);
+            valuePaint.setTextSize(20f);
+            valuePaint.setTextAlign(Paint.Align.CENTER);
         }
 
         public void setData(List<Double> newData) {
@@ -282,8 +363,15 @@ public class ProductDetailFragment extends Fragment {
                 float bottom = height - padding - labelSpace;
                 RectF rect = new RectF(left, top, right, bottom);
                 canvas.drawRoundRect(rect, 4f, 4f, barPaint);
+
+                // Value label
+                if (data.get(i) > 0) {
+                    String valLabel = data.get(i) >= 10 ? String.format(Locale.getDefault(), "%.0f", data.get(i)) : String.format(Locale.getDefault(), "%.1f", data.get(i));
+                    canvas.drawText(valLabel, left + barWidth / 2, top - 5f, valuePaint);
+                }
+
                 Calendar cal = Calendar.getInstance();
-                cal.add(Calendar.DAY_OF_YEAR, -(data.size() - 1 - i));
+                cal.add(Calendar.DAY_OF_YEAR, -(data.size() - i - 1));
                 String dayLabel = new SimpleDateFormat("E", Locale.getDefault()).format(cal.getTime()).substring(0, 1);
                 canvas.drawText(dayLabel, left + barWidth / 2, height - 5f, textPaint);
             }

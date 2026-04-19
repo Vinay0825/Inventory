@@ -9,7 +9,6 @@ import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,12 +19,18 @@ import androidx.fragment.app.Fragment;
 import com.example.inventory.R;
 import com.example.inventory.databinding.FragmentSettingsBinding;
 import com.example.inventory.ui.auth.LoginActivity;
+import com.example.inventory.utils.AppPrefs;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.Locale;
 
 public class SettingsFragment extends Fragment {
 
     private FragmentSettingsBinding binding;
     private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
     private SharedPreferences prefs;
     private boolean isSettingUp = false;
 
@@ -38,33 +43,75 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        com.google.firebase.auth.FirebaseUser user =
+                com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+        String userId = user.getUid();
+
+        // Show email
+        if (user.getEmail() != null)
+            binding.settingsUserEmail.setText(user.getEmail());
+
+        // Load shop info
+        db.collection("users").document(userId)
+                .collection("settings").document("shopInfo")
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (binding == null || doc == null) return;
+                    String name = doc.getString("shopName");
+                    String type = doc.getString("shopType");
+                    if (name != null && !name.isEmpty()) {
+                        binding.settingsShopName.setText(name);
+                        binding.shopNameValue.setText(name);
+                        binding.settingsAvatarInitial.setText(
+                                String.valueOf(name.charAt(0)).toUpperCase(Locale.getDefault()));
+                    }
+                    if (type != null) binding.settingsShopType.setText(type);
+                    binding.shopTypeValue.setText(type);
+                });
+
+        // Edit shop name
+        binding.editShopNameButton.setOnClickListener(v -> {
+            android.widget.EditText input =
+                    new android.widget.EditText(requireContext());
+            input.setText(binding.settingsShopName.getText());
+            input.setHint("Enter shop name");
+            input.setPadding(48, 24, 48, 24);
+
+            new android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Edit Shop Name")
+                    .setView(input)
+                    .setPositiveButton("Save", (dialog, which) -> {
+                        String newName = input.getText().toString().trim();
+                        if (newName.isEmpty()) return;
+                        db.collection("users").document(userId)
+                                .collection("settings").document("shopInfo")
+                                .update("shopName", newName)
+                                .addOnSuccessListener(aVoid -> {
+                                    if (binding == null) return;
+                                    binding.settingsShopName.setText(newName);
+                                    binding.shopNameValue.setText(newName);
+                                    binding.settingsAvatarInitial.setText(
+                                            String.valueOf(newName.charAt(0))
+                                                    .toUpperCase(Locale.getDefault()));
+                                    android.widget.Toast.makeText(getContext(),
+                                            "Shop name updated",
+                                            android.widget.Toast.LENGTH_SHORT).show();
+                                });
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+
+        // Other settings initialization
         mAuth = FirebaseAuth.getInstance();
-        prefs = requireActivity().getSharedPreferences("ShopMatePrefs", Context.MODE_PRIVATE);
-
-        loadSettings();
-
+        prefs = requireActivity().getSharedPreferences(AppPrefs.PREFS_NAME, Context.MODE_PRIVATE);
+        
         binding.logoutButton.setOnClickListener(v -> logout());
-        binding.changePasswordButton.setOnClickListener(v -> showChangePasswordDialog());
-        binding.saveThresholdButton.setOnClickListener(v -> savePreferences());
 
         setupThemeToggles();
-    }
-
-    private void loadSettings() {
-        if (mAuth.getCurrentUser() != null) {
-            binding.settingsEmailDisplay.setText(mAuth.getCurrentUser().getEmail());
-        }
-
-        int threshold = prefs.getInt("global_low_stock_threshold", 5);
-        binding.settingsGlobalThreshold.setText(String.valueOf(threshold));
-    }
-
-    private void savePreferences() {
-        String val = binding.settingsGlobalThreshold.getText().toString().trim();
-        if (!val.isEmpty()) {
-            prefs.edit().putInt("global_low_stock_threshold", Integer.parseInt(val)).apply();
-            Toast.makeText(getContext(), "Preferences saved", Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void setupThemeToggles() {
@@ -96,44 +143,9 @@ public class SettingsFragment extends Fragment {
         });
     }
 
-    private void showChangePasswordDialog() {
-        if (!isAdded() || getActivity() == null) return;
-
-        final EditText passwordInput = new EditText(requireActivity());
-        passwordInput.setHint("New Password");
-        passwordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        passwordInput.setPadding(32, 32, 32, 32);
-
-        // FIX: Plain AlertDialog.Builder — MaterialAlertDialogBuilder crashes on MIUI with custom themes
-        new AlertDialog.Builder(requireActivity())
-                .setTitle("Change Password")
-                .setView(passwordInput)
-                .setPositiveButton("Update", (dialog, which) -> {
-                    String newPass = passwordInput.getText().toString().trim();
-                    if (newPass.length() >= 6) {
-                        if (mAuth.getCurrentUser() != null) {
-                            mAuth.getCurrentUser().updatePassword(newPass)
-                                    .addOnCompleteListener(task -> {
-                                        if (!isAdded()) return;
-                                        if (task.isSuccessful()) {
-                                            Toast.makeText(getContext(), "Password updated", Toast.LENGTH_SHORT).show();
-                                        } else {
-                                            Toast.makeText(getContext(), "Error: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                        }
-                                    });
-                        }
-                    } else {
-                        Toast.makeText(getContext(), "Password must be at least 6 characters", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
     private void logout() {
         if (!isAdded() || getActivity() == null) return;
 
-        // FIX: Plain AlertDialog.Builder — MaterialAlertDialogBuilder crashes on MIUI with custom themes
         new AlertDialog.Builder(requireActivity())
                 .setTitle("Logout")
                 .setMessage("Are you sure you want to logout?")

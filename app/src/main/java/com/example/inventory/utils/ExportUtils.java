@@ -80,7 +80,7 @@ public class ExportUtils {
         // Header
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
         paint.setTextSize(24);
-        canvas.drawText(shopName != null ? shopName : "ShopMate", 40, 50, paint);
+        canvas.drawText(shopName != null ? shopName : "ShopEase", 40, 50, paint);
         paint.setTextSize(14);
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
         canvas.drawText("Sales Report - " + new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()), 40, 80, paint);

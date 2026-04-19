@@ -5,19 +5,19 @@ import java.util.Map;
 
 public class AnalyticsModel {
     private String barcode;
-    private long totalUnitsSold;
+    private double totalUnitsSold;
     private double totalRevenue;
     private int salesCount;
     private Timestamp lastSoldAt;
-    private Map<String, Integer> dailySales;
-    private Map<String, Integer> weeklySales;
+    private Map<String, Object> dailySales;
+    private Map<String, Double> weeklySales;
 
     public AnalyticsModel() {
         // Required empty constructor for Firestore
     }
 
-    public AnalyticsModel(String barcode, long totalUnitsSold, double totalRevenue, int salesCount, 
-                          Timestamp lastSoldAt, Map<String, Integer> dailySales, Map<String, Integer> weeklySales) {
+    public AnalyticsModel(String barcode, double totalUnitsSold, double totalRevenue, int salesCount, 
+                          Timestamp lastSoldAt, Map<String, Object> dailySales, Map<String, Double> weeklySales) {
         this.barcode = barcode;
         this.totalUnitsSold = totalUnitsSold;
         this.totalRevenue = totalRevenue;
@@ -30,8 +30,8 @@ public class AnalyticsModel {
     public String getBarcode() { return barcode; }
     public void setBarcode(String barcode) { this.barcode = barcode; }
 
-    public long getTotalUnitsSold() { return totalUnitsSold; }
-    public void setTotalUnitsSold(long totalUnitsSold) { this.totalUnitsSold = totalUnitsSold; }
+    public double getTotalUnitsSold() { return totalUnitsSold; }
+    public void setTotalUnitsSold(double totalUnitsSold) { this.totalUnitsSold = totalUnitsSold; }
 
     public double getTotalRevenue() { return totalRevenue; }
     public void setTotalRevenue(double totalRevenue) { this.totalRevenue = totalRevenue; }
@@ -42,9 +42,9 @@ public class AnalyticsModel {
     public Timestamp getLastSoldAt() { return lastSoldAt; }
     public void setLastSoldAt(Timestamp lastSoldAt) { this.lastSoldAt = lastSoldAt; }
 
-    public Map<String, Integer> getDailySales() { return dailySales; }
-    public void setDailySales(Map<String, Integer> dailySales) { this.dailySales = dailySales; }
+    public Map<String, Object> getDailySales() { return dailySales; }
+    public void setDailySales(Map<String, Object> dailySales) { this.dailySales = dailySales; }
 
-    public Map<String, Integer> getWeeklySales() { return weeklySales; }
-    public void setWeeklySales(Map<String, Integer> weeklySales) { this.weeklySales = weeklySales; }
+    public Map<String, Double> getWeeklySales() { return weeklySales; }
+    public void setWeeklySales(Map<String, Double> weeklySales) { this.weeklySales = weeklySales; }
 }

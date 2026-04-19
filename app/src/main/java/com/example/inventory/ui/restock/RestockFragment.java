@@ -16,10 +16,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
-import com.bumptech.glide.Glide;
 import com.example.inventory.R;
 import com.example.inventory.databinding.FragmentRestockBinding;
 import com.example.inventory.model.ProductModel;
@@ -34,11 +34,17 @@ public class RestockFragment extends Fragment {
     private FragmentRestockBinding binding;
     private SalesViewModel salesViewModel;
     private ProductViewModel productViewModel;
+    private int    restockQty          = 10;
+    private double restockCurrentStock = 0.0;
     private ProductModel selectedProduct;
+    // Stored reference so we can remove observers before re-observing,
+    // preventing stacking when fetchProduct() is called multiple times.
+    private LiveData<ProductModel> currentProductLiveData;
 
     private final ActivityResultLauncher<Intent> scannerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
+                if (binding == null) return;
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     String barcode = result.getData().getStringExtra("barcode");
                     binding.restockBarcodeEditText.setText(barcode);
@@ -61,7 +67,7 @@ public class RestockFragment extends Fragment {
         if (getArguments() != null && getArguments().getString("barcode") != null) {
             String barcode = getArguments().getString("barcode");
             binding.restockBarcodeEditText.setText(barcode);
-            fetchProduct(barcode); // explicitly load product on arrival
+            fetchProduct(barcode);
         }
 
         binding.restockBarcodeLayout.setEndIconOnClickListener(v -> {
@@ -86,24 +92,83 @@ public class RestockFragment extends Fragment {
         });
 
         binding.confirmRestockButton.setOnClickListener(v -> processRestock());
+        // ── ± stepper wiring ──────────────────────────────────────────
+        binding.restockMinusButton.setOnClickListener(v -> {
+            if (restockQty > 1) {
+                restockQty--;
+                updateRestockSummary();
+            }
+        });
+
+        binding.restockPlusButton.setOnClickListener(v -> {
+            restockQty++;
+            updateRestockSummary();
+        });
+
+        binding.restockQuantityEditText.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(Editable s) {
+                try {
+                    int v = Integer.parseInt(s.toString());
+                    if (v >= 1) {
+                        restockQty = v;
+                        binding.restockAddingSummary.setText("Adding: " + restockQty + " pcs");
+                        binding.restockNewTotal.setText((int)(restockCurrentStock + restockQty) + " units");
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        });
     }
 
     private void fetchProduct(String barcode) {
-        productViewModel.getProduct(barcode).observe(getViewLifecycleOwner(), product -> {
+        // Remove observers from the previous LiveData before observing a new one.
+        // This prevents stacking since getProduct() returns a fresh LiveData each call.
+        if (currentProductLiveData != null) {
+            currentProductLiveData.removeObservers(getViewLifecycleOwner());
+        }
+        currentProductLiveData = productViewModel.getProduct(barcode);
+        currentProductLiveData.observe(getViewLifecycleOwner(), product -> {
             if (binding == null) return;
             if (product != null) {
                 selectedProduct = product;
                 binding.restockProductCard.setVisibility(View.VISIBLE);
                 binding.restockProductName.setText(product.getName());
-                binding.restockProductStock.setText("Current Stock: " + product.getStockDisplay());
-                binding.restockProductPrice.setText(String.format(Locale.getDefault(), "Price: ₹%.2f", product.getPrice()));
+                binding.restockProductStock.setText(
+                        "Current Stock: " + product.getStockDisplay());
+                binding.restockProductPrice.setText(String.format(
+                        Locale.getDefault(),
+                        "Price: ₹%.2f", product.getPrice()));
 
-                Glide.with(this)
-                     .load(product.getImageUrl())
-                     .placeholder(R.drawable.ic_image_placeholder)
-                     .error(R.drawable.ic_image_placeholder)
-                     .circleCrop()
-                     .into(binding.restockProductImage);
+                restockCurrentStock = ProductModel.isDecimalUnit(product.getUnit())
+                        ? product.getCurrentStockDecimal()
+                        : product.getCurrentStock();
+                restockQty = 10;
+                updateRestockSummary();
+
+                String b64 = product.getImageBase64();
+                if (b64 != null && !b64.isEmpty()) {
+                    try {
+                        byte[] bytes = android.util.Base64.decode(
+                                b64, android.util.Base64.DEFAULT);
+                        android.graphics.Bitmap bmp =
+                                android.graphics.BitmapFactory
+                                        .decodeByteArray(bytes, 0, bytes.length);
+                        if (bmp != null) {
+                            binding.restockProductImage.setImageBitmap(bmp);
+                        } else {
+                            binding.restockProductImage.setImageResource(
+                                    R.drawable.ic_image_placeholder);
+                        }
+                    } catch (Exception ex) {
+                        binding.restockProductImage.setImageResource(
+                                R.drawable.ic_image_placeholder);
+                    }
+                } else {
+                    binding.restockProductImage.setImageResource(
+                            R.drawable.ic_image_placeholder);
+                }
 
                 binding.confirmRestockButton.setEnabled(true);
             } else {
@@ -113,7 +178,14 @@ public class RestockFragment extends Fragment {
         });
     }
 
+    private void updateRestockSummary() {
+        binding.restockQuantityEditText.setText(String.valueOf(restockQty));
+        binding.restockQuantityEditText.setSelection(binding.restockQuantityEditText.length());
+        binding.restockAddingSummary.setText("Adding: " + restockQty + " pcs");
+        binding.restockNewTotal.setText((int)(restockCurrentStock + restockQty) + " units");
+    }
     private void processRestock() {
+        if (selectedProduct == null) return;
         String quantityStr = binding.restockQuantityEditText.getText().toString().trim();
         if (TextUtils.isEmpty(quantityStr)) {
             Toast.makeText(getContext(), "Enter quantity to restock", Toast.LENGTH_SHORT).show();
@@ -127,14 +199,28 @@ public class RestockFragment extends Fragment {
         }
 
         binding.confirmRestockButton.setEnabled(false);
-        try {
-            salesViewModel.restockProduct(selectedProduct.getBarcode(), quantity, getContext());
-            Toast.makeText(getContext(), "Restock successful", Toast.LENGTH_SHORT).show();
-            Navigation.findNavController(binding.getRoot()).popBackStack();
-        } catch (Exception e) {
-            Toast.makeText(getContext(), "Restock failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            binding.confirmRestockButton.setEnabled(true);
-        }
+        binding.confirmRestockButton.setText("Processing...");
+        salesViewModel.restockProduct(
+                selectedProduct.getBarcode(),
+                quantity,
+                getContext(),
+                () -> {
+                    if (binding == null) return;
+                    binding.confirmRestockButton.setText("✓ Done!");
+                    binding.confirmRestockButton.setBackgroundColor(0xFF00C896);
+                    binding.getRoot().postDelayed(() -> {
+                        if (binding == null) return;
+                        Navigation.findNavController(binding.getRoot()).popBackStack();
+                    }, 600);
+                },
+                errorMsg -> {
+                    if (binding == null) return;
+                    binding.confirmRestockButton.setText("Confirm Restock");
+                    binding.confirmRestockButton.setEnabled(true);
+                    Toast.makeText(getContext(),
+                            "Restock failed: " + errorMsg, Toast.LENGTH_LONG).show();
+                }
+        );
     }
 
     @Override

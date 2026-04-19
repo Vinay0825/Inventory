@@ -2,6 +2,7 @@ package com.example.inventory.ui.scanner;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -34,6 +35,12 @@ public class ScannerActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CAMERA = 1001;
     private PreviewView previewView;
     private ExecutorService cameraExecutor;
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(
+            com.example.inventory.utils.LocaleHelper.wrap(newBase));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

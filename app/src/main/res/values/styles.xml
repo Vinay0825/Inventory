@@ -1,0 +1,35 @@
+<resources><!-- Toolbar title style -->
+<style name="ToolbarTitleStyle" parent="TextAppearance.MaterialComponents.Headline6">
+    <item name="android:textColor">#F1F0FF</item>
+    <item name="android:textSize">18sp</item>
+    <item name="android:fontFamily">sans-serif-medium</item>
+    <item name="android:letterSpacing">-0.02</item>
+</style>
+
+<style name="BottomNavStyle" parent="Widget.MaterialComponents.BottomNavigationView">
+<item name="android:background">#00000000</item>
+<item name="itemBackground">@android:color/transparent</item>
+</style>
+
+    <!-- Bottom nav active indicator — pill highlight behind active icon -->
+<style name="BottomNavIndicatorStyle">
+<item name="android:color">#1FA78BFA</item>
+<item name="shapeAppearance">@style/BottomNavIndicatorShape</item>
+</style>
+
+
+        <!-- Base app shape overlay -->
+        <style name="ShapeAppearanceOverlay.App" parent="">
+            <item name="cornerFamily">rounded</item>
+        </style>
+
+        <!-- 50% corners = circle / pill -->
+        <style name="ShapeAppearanceOverlay.App.CornerSize50Percent" parent="ShapeAppearanceOverlay.App">
+            <item name="cornerSize">50%</item>
+        </style>
+
+
+<style name="BottomNavIndicatorShape" parent="ShapeAppearance.Material3.Corner.Full">
+<item name="cornerSize">50%</item>
+</style>
+</resources>

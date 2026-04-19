@@ -9,7 +9,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.bumptech.glide.Glide;
 import com.example.inventory.R;
 import com.example.inventory.databinding.BottomSheetScanResultBinding;
 import com.example.inventory.model.ProductModel;
@@ -45,12 +44,12 @@ public class ScanResultBottomSheet extends BottomSheetDialogFragment {
             binding.tvStock.setText(product.getStockDisplay());
             binding.tvPrice.setText(String.format(Locale.getDefault(), "₹%.2f", product.getPrice()));
 
-            Glide.with(this)
-                 .load(product.getImageUrl())
-                 .placeholder(R.drawable.ic_image_placeholder)
-                 .error(R.drawable.ic_image_placeholder)
-                 .circleCrop()
-                 .into(binding.ivProductImage);
+            android.graphics.Bitmap bmp = product.getImageBitmap();
+            if (bmp != null) {
+                binding.ivProductImage.setImageBitmap(bmp);
+            } else {
+                binding.ivProductImage.setImageResource(R.drawable.ic_image_placeholder);
+            }
 
             binding.btnSell.setOnClickListener(v -> {
                 Bundle args = new Bundle();
@@ -63,6 +62,14 @@ public class ScanResultBottomSheet extends BottomSheetDialogFragment {
                 Bundle args = new Bundle();
                 args.putString("barcode", product.getBarcode());
                 NavHostFragment.findNavController(this).navigate(R.id.restockFragment, args);
+                dismiss();
+            });
+
+// ADD THIS — tvViewDetails navigates to product detail
+            binding.tvViewDetails.setOnClickListener(v -> {
+                Bundle args = new Bundle();
+                args.putString("barcode", product.getBarcode());
+                NavHostFragment.findNavController(this).navigate(R.id.productDetailFragment, args);
                 dismiss();
             });
         }

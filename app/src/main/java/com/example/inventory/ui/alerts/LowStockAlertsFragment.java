@@ -1,9 +1,13 @@
 package com.example.inventory.ui.alerts;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.SeekBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,6 +22,7 @@ import com.example.inventory.databinding.FragmentLowStockAlertsBinding;
 import com.example.inventory.databinding.ItemAlertBinding;
 import com.example.inventory.model.AnalyticsModel;
 import com.example.inventory.model.ProductModel;
+import com.example.inventory.utils.AppPrefs;
 import com.example.inventory.utils.StockRulesEngine;
 import com.example.inventory.viewmodel.DashboardViewModel;
 import com.example.inventory.viewmodel.ProductViewModel;
@@ -46,7 +51,61 @@ public class LowStockAlertsFragment extends Fragment {
 
         setupRecyclerView();
 
-        productViewModel.getLowStockProducts().observe(getViewLifecycleOwner(), products -> {
+        // ── Threshold SeekBar ─────────────────────────────────────────
+        SharedPreferences prefs = requireContext()
+                .getSharedPreferences(AppPrefs.PREFS_NAME, Context.MODE_PRIVATE);
+        int saved = prefs.getInt(AppPrefs.KEY_THRESHOLD, AppPrefs.DEFAULT_THRESHOLD);
+
+        SeekBar seekBar         = view.findViewById(R.id.thresholdSeekBar);
+        TextView thresholdLabel = view.findViewById(R.id.thresholdValueText);
+        View confirmBtn         = view.findViewById(R.id.confirmThresholdButton);
+
+        seekBar.setProgress(saved);
+        thresholdLabel.setText(String.valueOf(saved));
+
+        final int[] pendingValue = { saved };
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar s, int progress, boolean fromUser) {
+                int value = Math.max(1, progress);
+                thresholdLabel.setText(String.valueOf(value));
+                pendingValue[0] = value;
+                confirmBtn.setEnabled(value != prefs.getInt(AppPrefs.KEY_THRESHOLD, AppPrefs.DEFAULT_THRESHOLD));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar s) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar s) {}
+        });
+
+        confirmBtn.setOnClickListener(v -> {
+            int value = pendingValue[0];
+            prefs.edit().putInt(AppPrefs.KEY_THRESHOLD, value).apply();
+            confirmBtn.setEnabled(false);
+            productViewModel.getLowStockProducts(value).observe(getViewLifecycleOwner(), products -> {
+                if (binding == null) return;
+                if (products == null || products.isEmpty()) {
+                    binding.noAlertsView.setVisibility(View.VISIBLE);
+                    binding.alertsRecyclerView.setVisibility(View.GONE);
+                    adapter.setProducts(new ArrayList<>(), new ArrayList<>());
+                } else {
+                    binding.noAlertsView.setVisibility(View.GONE);
+                    binding.alertsRecyclerView.setVisibility(View.VISIBLE);
+                    dashboardViewModel.getBestSellers().observe(getViewLifecycleOwner(),
+                            analyticsList -> {
+                                if (binding == null) return;
+                                adapter.setProducts(products, analyticsList);
+                            });
+                }
+            });
+        });
+
+        // ── Main observer ─────────────────────────────────────────────
+        productViewModel.getLowStockProducts(saved).observe(getViewLifecycleOwner(), products -> {
+            if (binding == null) return;
             if (products == null || products.isEmpty()) {
                 binding.noAlertsView.setVisibility(View.VISIBLE);
                 binding.alertsRecyclerView.setVisibility(View.GONE);
@@ -54,12 +113,11 @@ public class LowStockAlertsFragment extends Fragment {
             } else {
                 binding.noAlertsView.setVisibility(View.GONE);
                 binding.alertsRecyclerView.setVisibility(View.VISIBLE);
-                
-                dashboardViewModel.getAllProducts().observe(getViewLifecycleOwner(), allProducts -> {
-                    dashboardViewModel.getBestSellers().observe(getViewLifecycleOwner(), analyticsList -> {
-                        adapter.setProducts(products, analyticsList);
-                    });
-                });
+                dashboardViewModel.getBestSellers().observe(
+                        getViewLifecycleOwner(), analyticsList -> {
+                            if (binding == null) return;
+                            adapter.setProducts(products, analyticsList);
+                        });
             }
         });
     }
@@ -110,11 +168,29 @@ public class LowStockAlertsFragment extends Fragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             ProductModel product = products.get(position);
             holder.binding.alertProductName.setText(product.getName());
-            holder.binding.alertCurrentStock.setText(product.getCurrentStock() + " left");
+            holder.binding.alertCurrentStock.setText(product.getStockDisplay() + " left");
             
             AnalyticsModel am = findAnalytics(product.getBarcode());
             int suggested = StockRulesEngine.suggestRestock(product, am);
             holder.binding.alertSuggestedRestock.setText("Suggested restock: " + suggested + " " + product.getUnit());
+
+            String b64 = product.getImageBase64();
+            if (b64 != null && !b64.isEmpty()) {
+                try {
+                    byte[] bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                    android.graphics.Bitmap bmp = android.graphics.BitmapFactory
+                        .decodeByteArray(bytes, 0, bytes.length);
+                    if (bmp != null) {
+                        holder.binding.alertProductImage.setImageBitmap(bmp);
+                    } else {
+                        holder.binding.alertProductImage.setImageResource(android.R.drawable.ic_menu_report_image);
+                    }
+                } catch (Exception ex) {
+                    holder.binding.alertProductImage.setImageResource(android.R.drawable.ic_menu_report_image);
+                }
+            } else {
+                holder.binding.alertProductImage.setImageResource(android.R.drawable.ic_menu_report_image);
+            }
 
             holder.binding.alertRestockButton.setOnClickListener(v -> listener.onRestockClick(product));
         }

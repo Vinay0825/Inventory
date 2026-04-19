@@ -10,6 +10,7 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
@@ -19,33 +20,57 @@ public class SalesRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
     private final String userId;
+    private final android.content.Context context;
+
+    // Single shared LiveData + listener for sales history
+    private final MutableLiveData<List<SaleModel>> salesLiveData =
+        new MutableLiveData<>();
+    private ListenerRegistration salesListener;
 
     public SalesRepository() {
-        this.userId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "unknown";
+        this.userId = auth.getCurrentUser() != null
+            ? auth.getCurrentUser().getUid() : "unknown";
+        this.context = com.example.inventory.App.getInstance()
+            .getApplicationContext();
+        attachSalesListener();
     }
 
     private CollectionReference getSalesRef() {
         return db.collection("users").document(userId).collection("sales");
     }
 
-    public void addSale(SaleModel sale) {
-        String id = getSalesRef().document().getId();
-        sale.setSaleId(id);
-        getSalesRef().document(id).set(sale);
-    }
-
-    public LiveData<List<SaleModel>> getSalesHistory() {
-        MutableLiveData<List<SaleModel>> salesList = new MutableLiveData<>();
-        getSalesRef().orderBy("soldAt", Query.Direction.DESCENDING).addSnapshotListener((value, error) -> {
-            if (value != null) {
+    private void attachSalesListener() {
+        if (salesListener != null) salesListener.remove();
+        salesListener = getSalesRef()
+            .orderBy("soldAt", Query.Direction.DESCENDING)
+            .addSnapshotListener((value, error) -> {
+                if (value == null) return;
                 List<SaleModel> list = new ArrayList<>();
                 for (DocumentSnapshot doc : value.getDocuments()) {
-                    list.add(doc.toObject(SaleModel.class));
+                    SaleModel s = doc.toObject(SaleModel.class);
+                    if (s != null) list.add(s);
                 }
-                salesList.setValue(list);
-            }
-        });
-        return salesList;
+                salesLiveData.setValue(list);
+            });
+    }
+
+    // Returns the single shared LiveData — same instance every call
+    public LiveData<List<SaleModel>> getSalesHistory() {
+        return salesLiveData;
+    }
+
+    public void getSalesHistoryOnce(com.google.android.gms.tasks.OnSuccessListener<List<SaleModel>> listener) {
+        getSalesRef()
+            .orderBy("soldAt", Query.Direction.DESCENDING)
+            .get()
+            .addOnSuccessListener(snapshot -> {
+                List<SaleModel> list = new ArrayList<>();
+                for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                    SaleModel sale = doc.toObject(SaleModel.class);
+                    if (sale != null) list.add(sale);
+                }
+                listener.onSuccess(list);
+            });
     }
 
     public LiveData<Double> getTodayTotal(String dayKey) {
@@ -75,13 +100,19 @@ public class SalesRepository {
         return count;
     }
 
-    public void voidSale(SaleModel sale, AnalyticsRepository analyticsRepository) {
-        DocumentReference saleRef = getSalesRef().document(sale.getSaleId());
-        DocumentReference productRef = db.collection("users").document(userId).collection("products").document(sale.getBarcode());
-        
+    public void voidSale(SaleModel sale,
+                         AnalyticsRepository analyticsRepository) {
+        DocumentReference saleRef =
+            getSalesRef().document(sale.getSaleId());
+        DocumentReference productRef = db.collection("users")
+            .document(userId).collection("products")
+            .document(sale.getBarcode());
+
         db.runTransaction(transaction -> {
             DocumentSnapshot saleSnap = transaction.get(saleRef);
-            if (!saleSnap.exists() || saleSnap.getBoolean("voided") == Boolean.TRUE) return null;
+            if (!saleSnap.exists()
+                    || Boolean.TRUE.equals(saleSnap.getBoolean("voided")))
+                return null;
 
             DocumentSnapshot productSnap = transaction.get(productRef);
             if (productSnap.exists()) {
@@ -105,6 +136,20 @@ public class SalesRepository {
             analyticsRepository.updateAnalytics(sale.getBarcode(), (int)quantityToSubtract, amountToSubtract, sale.getDayKey());
 
             return null;
+        }).addOnSuccessListener(aVoid -> {
+            // Post-sale low stock notification
+            productRef.get().addOnSuccessListener(snap -> {
+                if (snap == null || !snap.exists()) return;
+                ProductModel updated = snap.toObject(ProductModel.class);
+                if (updated != null &&
+                        com.example.inventory.utils.StockRulesEngine.isLowStock(updated)) {
+                    com.example.inventory.notifications.LowStockNotificationManager
+                        .createNotificationChannel(context);
+                    com.example.inventory.notifications.LowStockNotificationManager
+                        .sendLowStockNotification(
+                            context, updated.getName(), updated.getStockDisplay());
+                }
+            });
         });
     }
 }

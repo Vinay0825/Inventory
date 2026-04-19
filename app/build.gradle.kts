@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.inventory"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -43,6 +43,8 @@ dependencies {
     implementation(libs.material)
     implementation(libs.constraintlayout)
     implementation(libs.activity)
+    implementation(libs.swiperefreshlayout)
+    implementation(libs.preference)
 
     // Navigation Component
     implementation("androidx.navigation:navigation-fragment:2.7.6")
@@ -74,6 +76,10 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime:2.9.0")
+
+    // Excel Export
+    implementation("org.apache.poi:poi:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
 
     // Testing
     testImplementation(libs.junit)

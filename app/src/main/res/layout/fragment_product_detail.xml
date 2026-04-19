@@ -1,247 +1,497 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/backround">
 
+    <!-- ═══ Collapsing hero image toolbar ═══ -->
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent">
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
         <com.google.android.material.appbar.CollapsingToolbarLayout
             android:layout_width="match_parent"
-            android:layout_height="250dp"
-            app:layout_scrollFlags="scroll|exitUntilCollapsed">
+            android:layout_height="380dp"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed"
+            app:contentScrim="@color/backround"
+            app:statusBarScrim="@color/backround">
 
+            <!-- Hero image -->
             <ImageView
                 android:id="@+id/productImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:src="@drawable/ic_image_placeholder"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                android:src="@drawable/bg_image_placeholder"
                 app:layout_collapseMode="parallax" />
 
+            <!-- Gradient scrim bottom fade -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/gradient_scrim" />
 
-            <androidx.appcompat.widget.Toolbar
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                app:layout_collapseMode="pin">
+            <!-- Pinned toolbar with back + edit + delete -->
 
+                <!-- Edit button -->
                 <ImageButton
                     android:id="@+id/editButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="310dp"
                     android:layout_gravity="end"
-                    android:layout_marginEnd="16dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginBottom="40dp"
                     android:src="@android:drawable/ic_menu_edit"
-                    app:tint="@android:color/white" />
-            </androidx.appcompat.widget.Toolbar>
+                    android:background="?attr/selectableItemBackgroundBorderless"/>
+
 
         </com.google.android.material.appbar.CollapsingToolbarLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- ═══ Scrollable content ═══ -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@color/backround"
+        android:fillViewport="true"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingBottom="100dp"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="10dp">
 
-            <!-- Expiry Warning Card -->
+            <!-- ═══ Expiry warning — Java controls visibility ═══ -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/expiryWarning"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="12dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="@android:color/holo_red_light"
-                app:cardCornerRadius="8dp"
-                app:strokeWidth="0dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#3DEF4444"
+                app:strokeColor="@color/error"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="12dp">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:src="@android:drawable/stat_sys_warning"
-                        app:tint="@android:color/white" />
+                        app:tint="@color/error" />
 
                     <TextView
                         android:id="@+id/expiryWarningText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="10dp"
                         android:text="Expires soon!"
-                        android:textColor="@android:color/white"
+                        android:textColor="@color/error"
+                        android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <TextView
-                android:id="@+id/productName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Product Name"
-                android:textAppearance="?attr/textAppearanceHeadlineMedium"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/productCategory"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Category • Unit"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/barcodeChip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="0000000000"
-                app:chipIcon="@android:drawable/ic_menu_camera" />
-
-            <com.google.android.material.divider.MaterialDivider
+            <!-- ═══ Overlapping info card — purple left accent ═══ -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="16dp" />
-
-            <!-- Info Grid -->
-            <GridLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:columnCount="2"
-                android:rowCount="2">
+                android:layout_marginTop="5dp"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/outline_variant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:layout_marginBottom="16dp"
-                    android:orientation="vertical">
+                    android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Price"
-                        android:textAppearance="?attr/textAppearanceLabelMedium" />
+                    <!-- Purple left accent bar -->
+                    <View
+                        android:layout_width="6dp"
+                        android:layout_height="match_parent"
+                        android:background="@color/primary" />
 
-                    <TextView
-                        android:id="@+id/sellPrice"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="₹0.00"
-                        android:textAppearance="?attr/textAppearanceTitleLarge"
-                        android:textColor="?attr/colorPrimary"
-                        android:textStyle="bold" />
+                        android:orientation="vertical"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="18dp">
+
+                        <!-- Name row + price -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <!-- Left: brand + name -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/productName"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="Product Name"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary" />
+
+                            </LinearLayout>
+
+                            <!-- Right: price + stock badge -->
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:gravity="end">
+
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="₹"
+                                        android:textSize="11sp"
+                                        android:textColor="@color/text_secondary" />
+
+                                    <TextView
+                                        android:id="@+id/sellPrice"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="0.00"
+                                        android:textSize="22sp"
+                                        android:textStyle="bold"
+                                        android:textColor="@color/primary"
+                                        android:layout_marginStart="2dp" />
+
+                                </LinearLayout>
+
+                                <!-- Stock pill badge -->
+                                <TextView
+                                    android:id="@+id/stockCount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="4dp"
+                                    android:text="0 in stock"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/badge"
+                                    android:background="@drawable/bg_btn_tonal_purple"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="3dp" />
+
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Divider -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="16dp"
+                            android:background="@color/outline_variant" />
+
+                        <!-- ═══ 2×2 attribute grid ═══ -->
+                        <GridLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="14dp"
+                            android:columnCount="2"
+                            android:rowCount="2">
+
+                            <!-- Barcode -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:layout_marginBottom="16dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="BARCODE"
+                                    android:textSize="10sp"
+                                    android:textColor="@color/text_secondary"
+                                    android:textStyle="bold"
+                                    android:letterSpacing="0.08" />
+
+                                <com.google.android.material.chip.Chip
+                                    android:id="@+id/barcodeChip"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="4dp"
+                                    android:text="0000000000"
+                                    android:textSize="12sp"
+                                    android:textColor="@color/text_primary"
+                                    app:chipBackgroundColor="@color/outline_variant"
+                                    app:chipStrokeWidth="0dp"
+                                    app:chipMinHeight="28dp"
+                                    app:chipIcon="@android:drawable/ic_menu_camera"
+                                    app:chipIconTint="@color/text_secondary" />
+
+                            </LinearLayout>
+
+                            <!-- Category / unit -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:layout_marginBottom="16dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="CATEGORY"
+                                    android:textSize="10sp"
+                                    android:textColor="@color/text_secondary"
+                                    android:textStyle="bold"
+                                    android:letterSpacing="0.08" />
+
+                                <TextView
+                                    android:id="@+id/productCategory"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Category"
+                                    android:textSize="20sp"
+                                    android:layout_margin="10dp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/primary"
+                                    android:letterSpacing="0.08" />
+
+                            </LinearLayout>
+
+                        </GridLayout>
+
+                    </LinearLayout>
                 </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:layout_marginBottom="16dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Stock"
-                        android:textAppearance="?attr/textAppearanceLabelMedium" />
-
-                    <TextView
-                        android:id="@+id/stockCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textAppearance="?attr/textAppearanceTitleLarge"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Supplier"
-                        android:textAppearance="?attr/textAppearanceLabelMedium" />
-
-                    <TextView
-                        android:id="@+id/supplierValue"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="N/A"
-                        android:textAppearance="?attr/textAppearanceBodyLarge" />
-                </LinearLayout>
-            </GridLayout>
-
-            <com.google.android.material.divider.MaterialDivider
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginVertical="16dp" />
-
-            <!-- Actions -->
+            <!-- ═══ Quick action buttons ═══ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
                 android:orientation="horizontal">
 
+                <!-- Sell — filled purple -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/sellButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
+                    android:layout_height="56dp"
                     android:layout_weight="1"
-                    android:padding="12dp"
-                    android:text="Sell"
-                    app:icon="@android:drawable/ic_menu_send" />
+                    android:layout_marginEnd="8dp"
+                    android:text="Sell Product"
+                    android:textColor="@color/backround"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/primary"
+                    app:icon="@android:drawable/ic_menu_send"
+                    app:iconTint="@color/backround"
+                    app:cornerRadius="12dp" />
 
+                <!-- Restock — tonal dark -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/restockButton"
                     style="@style/Widget.Material3.Button.TonalButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_height="56dp"
                     android:layout_weight="1"
-                    android:padding="12dp"
+                    android:layout_marginStart="8dp"
                     android:text="Restock"
-                    app:icon="@android:drawable/ic_input_add" />
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/tonal_purple"
+                    app:icon="@android:drawable/ic_input_add"
+                    app:iconTint="@color/primary"
+                    app:cornerRadius="12dp" />
+
             </LinearLayout>
 
+            <!-- ═══ Per-product alert threshold ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/outline_variant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="match_parent"
+                        android:background="@color/warning" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CUSTOM ALERT THRESHOLD"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_secondary"
+                            android:letterSpacing="0.08"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Override the global default for this product only"
+                            android:textSize="11sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginBottom="14dp" />
+
+                        <!-- Stepper row -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="12dp">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/productThresholdMinus"
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:text="−"
+                                android:textSize="20sp"
+                                android:textColor="@color/text_primary"
+                                android:backgroundTint="@color/outline_variant"
+                                android:minWidth="0dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="0dp"
+                                app:cornerRadius="8dp" />
+
+                            <TextView
+                                android:id="@+id/productCustomThresholdValue"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:text="5"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/warning" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/productThresholdPlus"
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:text="+"
+                                android:textSize="20sp"
+                                android:textColor="@color/backround"
+                                android:backgroundTint="@color/warning"
+                                android:minWidth="0dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="0dp"
+                                app:cornerRadius="8dp" />
+
+                        </LinearLayout>
+
+                        <!-- Save + Reset row -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/productThresholdSave"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="8dp"
+                                android:text="Save"
+                                android:textColor="@color/backround"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                android:backgroundTint="@color/warning"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                app:cornerRadius="8dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/productThresholdReset"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:text="Use Global"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="13sp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                app:strokeColor="@color/outline_variant"
+                                app:cornerRadius="8dp" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══ Analytics card ═══ -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="28dp"
                 android:text="Analytics (Last 7 Days)"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textStyle="bold" />
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
+                app:cardBackgroundColor="@color/surface"
                 app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/outline_variant"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -253,8 +503,8 @@
                     <FrameLayout
                         android:id="@+id/miniChartContainer"
                         android:layout_width="match_parent"
-                        android:layout_height="120dp"
-                        android:background="?attr/colorSurfaceVariant" />
+                        android:layout_height="200dp"
+                        android:background="@color/backround" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -271,15 +521,21 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Total Sold"
-                                android:textAppearance="?attr/textAppearanceLabelSmall" />
+                                android:text="TOTAL SOLD"
+                                android:textSize="10sp"
+                                android:textColor="@color/text_secondary"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.08" />
 
                             <TextView
                                 android:id="@+id/totalSoldValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
                                 android:text="0"
-                                android:textAppearance="?attr/textAppearanceTitleMedium" />
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -291,54 +547,64 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Revenue"
-                                android:textAppearance="?attr/textAppearanceLabelSmall" />
+                                android:text="REVENUE"
+                                android:textSize="10sp"
+                                android:textColor="@color/text_secondary"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.08" />
 
                             <TextView
                                 android:id="@+id/totalRevenueValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
                                 android:text="₹0.00"
-                                android:textAppearance="?attr/textAppearanceTitleMedium" />
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/primary" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Decision Support -->
+            <!-- ═══ Suggestion box — Java controls visibility ═══ -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/suggestionBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:layout_marginBottom="32dp"
+                android:layout_marginBottom="16dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="?attr/colorTertiaryContainer"
+                app:cardBackgroundColor="@color/surface"
                 app:cardCornerRadius="12dp"
-                app:strokeWidth="0dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
+                    android:paddingBottom="80dp"
                     android:padding="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Stock Suggestion"
-                        android:textAppearance="?attr/textAppearanceLabelMedium"
-                        android:textColor="?attr/colorOnTertiaryContainer"
-                        android:textStyle="bold" />
+                        android:textSize="12sp"
+                        android:textColor="@color/primary"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.06" />
 
                     <TextView
                         android:id="@+id/suggestionText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="6dp"
                         android:text="Fetching suggestions..."
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnTertiaryContainer" />
+                        android:textSize="13sp"
+                        android:textColor="@color/text_primary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

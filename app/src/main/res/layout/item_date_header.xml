@@ -1,12 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/dateHeader"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:orientation="horizontal"
     android:paddingHorizontal="16dp"
     android:paddingVertical="8dp"
-    android:textSize="14sp"
-    android:textStyle="bold"
-    android:textColor="?attr/colorPrimary"
-    android:background="?attr/colorSurfaceVariant"
-    android:text="Today" />
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/dateHeader"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textStyle="bold"
+        android:textSize="13sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:text="Today" />
+
+    <TextView
+        android:id="@+id/dayTotalText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="13sp"
+        android:textColor="?attr/colorPrimary"
+        android:text="₹0"
+        android:visibility="gone"/>
+
+</LinearLayout>

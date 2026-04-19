@@ -12,6 +12,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.Transaction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,40 +28,49 @@ public class AnalyticsRepository {
         this.userId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "unknown";
     }
 
-    private CollectionReference getAnalyticsRef() {
-        return db.collection("users").document(userId).collection("analytics");
+    // Returns the analyticsRef so callers can pre-fetch it before any writes
+    public DocumentReference getAnalyticsRef(String barcode) {
+        return db.collection("users").document(userId).collection("analytics").document(barcode);
     }
 
-    public void updateAnalytics(String barcode, int quantitySold, double totalAmount, String dayKey) {
-        DocumentReference ref = getAnalyticsRef().document(barcode);
+    public void updateAnalytics(String barcode, double quantitySold, double totalAmount, String dayKey) {
+        DocumentReference ref = getAnalyticsRef(barcode);
         db.runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(ref);
-            if (!snapshot.exists()) {
-                AnalyticsModel model = new AnalyticsModel();
-                model.setBarcode(barcode);
-                model.setTotalUnitsSold(quantitySold);
-                model.setTotalRevenue(totalAmount);
-                model.setSalesCount(1);
-                model.setLastSoldAt(Timestamp.now());
-                Map<String, Integer> daily = new HashMap<>();
-                daily.put(dayKey, quantitySold);
-                model.setDailySales(daily);
-                model.setWeeklySales(new HashMap<>());
-                transaction.set(ref, model);
-            } else {
-                transaction.update(ref, "totalUnitsSold", FieldValue.increment(quantitySold));
-                transaction.update(ref, "totalRevenue", FieldValue.increment(totalAmount));
-                transaction.update(ref, "salesCount", FieldValue.increment(1));
-                transaction.update(ref, "lastSoldAt", Timestamp.now());
-                transaction.update(ref, "dailySales." + dayKey, FieldValue.increment(quantitySold));
-            }
+            updateAnalyticsInTransaction(transaction, barcode, quantitySold, totalAmount, dayKey, snapshot);
             return null;
         });
     }
 
+    // Call this ONLY after all reads are done, passing the pre-fetched snapshot
+    public void updateAnalyticsInTransaction(Transaction transaction, String barcode,
+            double quantitySold, double totalAmount, String dayKey,
+            DocumentSnapshot snapshot) {
+        DocumentReference ref = getAnalyticsRef(barcode);
+        if (!snapshot.exists()) {
+            AnalyticsModel model = new AnalyticsModel();
+            model.setBarcode(barcode);
+            model.setTotalUnitsSold(quantitySold);
+            model.setTotalRevenue(totalAmount);
+            model.setSalesCount(1);
+            model.setLastSoldAt(Timestamp.now());
+            Map<String, Object> daily = new HashMap<>();
+            daily.put(dayKey, quantitySold);
+            model.setDailySales(daily);
+            model.setWeeklySales(new HashMap<>());
+            transaction.set(ref, model);
+        } else {
+            transaction.update(ref, "totalUnitsSold", FieldValue.increment(quantitySold));
+            transaction.update(ref, "totalRevenue", FieldValue.increment(totalAmount));
+            transaction.update(ref, "salesCount", FieldValue.increment(1));
+            transaction.update(ref, "lastSoldAt", Timestamp.now());
+            transaction.update(ref, "dailySales." + dayKey, FieldValue.increment(quantitySold));
+        }
+    }
+
     public LiveData<AnalyticsModel> getAnalytics(String barcode) {
         MutableLiveData<AnalyticsModel> data = new MutableLiveData<>();
-        getAnalyticsRef().document(barcode).addSnapshotListener((value, error) -> {
+        getAnalyticsRef(barcode).addSnapshotListener((value, error) -> {
             if (value != null && value.exists()) {
                 data.setValue(value.toObject(AnalyticsModel.class));
             }
@@ -88,7 +98,7 @@ public class AnalyticsRepository {
         MutableLiveData<List<AnalyticsModel>> analyticsLiveData = new MutableLiveData<>();
         db.collection("users").document(userId)
             .collection("analytics")
-            .orderBy("totalUnitsSold", Query.Direction.DESCENDING).limit(10)
+            .orderBy("totalUnitsSold", Query.Direction.DESCENDING)
             .addSnapshotListener((snapshots, error) -> {
                 if (error != null || snapshots == null) return;
                 List<AnalyticsModel> list = new ArrayList<>();

@@ -1,19 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/backround">
 
+    <!-- Search bar — constrained to leave room for loose-item button -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/searchLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:hint="Search products..."
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="8dp"
+        android:hint="Search inventory..."
         app:startIconDrawable="@android:drawable/ic_menu_search"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:startIconTint="@color/text_secondary"
+        app:hintTextColor="@color/text_secondary"
+        app:boxStrokeColor="@color/outline_variant"
+        app:boxBackgroundColor="@color/surface"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:layout_constraintEnd_toStartOf="@id/looseItemButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -21,62 +33,140 @@
             android:id="@+id/searchEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
             android:inputType="text" />
+
     </com.google.android.material.textfield.TextInputLayout>
 
-    <HorizontalScrollView
+    <!-- Loose Item icon button — sits to the right of search bar -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/looseItemButton"
+        style="@style/Widget.Material3.Button.IconButton"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginEnd="16dp"
+        android:backgroundTint="@color/tonal_purple"
+        android:contentDescription="Loose item barcode"
+        app:icon="@android:drawable/ic_menu_camera"
+        app:iconTint="@color/primary"
+        app:iconSize="22dp"
+        app:cornerRadius="12dp"
+        app:layout_constraintBottom_toBottomOf="@id/searchLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/searchLayout" />
+
+    <!-- Filter chips -->
+    <com.example.inventory.utils.LockableHorizontalScrollView
         android:id="@+id/filterScrollView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="none"
         android:paddingHorizontal="16dp"
         android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:fillViewport="false"
         app:layout_constraintTop_toBottomOf="@id/searchLayout">
 
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/filterChipGroup"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
             app:singleSelection="true"
-            app:selectionRequired="true"
-            android:layout_marginVertical="8dp">
+            app:selectionRequired="true">
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipAll"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="All"
-                android:checked="true"/>
+                android:checked="true"
+                app:chipBackgroundColor="@color/background"
+                android:text="All Items" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipLowStock"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Low Stock"/>
+                android:text="Low Stock"
+                app:chipBackgroundColor="@color/background"
+                />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipLooseItems"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Loose Items"
+                app:chipBackgroundColor="@color/background"
+              />
 
         </com.google.android.material.chip.ChipGroup>
-    </HorizontalScrollView>
+    </com.example.inventory.utils.LockableHorizontalScrollView>
 
+    <!-- Product grid -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/productRecyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="100dp"
+        android:clipToPadding="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/filterScrollView" />
 
+    <!-- Empty state -->
+    <LinearLayout
+        android:id="@+id/emptyStateText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/productRecyclerView"
+        app:layout_constraintBottom_toBottomOf="@id/productRecyclerView"
+        app:layout_constraintStart_toStartOf="@id/productRecyclerView"
+        app:layout_constraintEnd_toEndOf="@id/productRecyclerView">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📦"
+            android:textSize="48sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="No products found"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Try a different search or filter"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary" />
+
+    </LinearLayout>
+
+    <!-- FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/addProductFab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="24dp"
+        android:layout_margin="20dp"
         android:src="@android:drawable/ic_input_add"
+        android:contentDescription="Add product"
+        app:backgroundTint="@color/primary"
+        app:tint="@color/backround"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:tint="#FFFFFF"
-        app:backgroundTint="#00C896" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

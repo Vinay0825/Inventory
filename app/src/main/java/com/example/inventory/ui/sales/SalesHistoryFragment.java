@@ -1,28 +1,22 @@
+
 package com.example.inventory.ui.sales;
 
-import android.app.AlertDialog;
-import android.graphics.Paint;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import com.example.inventory.databinding.FragmentSalesHistoryBinding;
-import com.example.inventory.databinding.ItemSaleBinding;
-import com.example.inventory.databinding.ItemDateHeaderBinding;
 import com.example.inventory.model.SaleModel;
-import com.example.inventory.utils.DateUtils;
 import com.example.inventory.viewmodel.SalesViewModel;
+import com.google.android.material.tabs.TabLayoutMediator;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -30,7 +24,7 @@ public class SalesHistoryFragment extends Fragment {
 
     private FragmentSalesHistoryBinding binding;
     private SalesViewModel viewModel;
-    private SalesAdapter adapter;
+    private androidx.lifecycle.MutableLiveData<List<com.example.inventory.model.SaleModel>> salesLiveData;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -43,148 +37,144 @@ public class SalesHistoryFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(SalesViewModel.class);
 
-        setupRecyclerView();
-
-        viewModel.getSalesHistory().observe(getViewLifecycleOwner(), sales -> {
+        salesLiveData = new androidx.lifecycle.MutableLiveData<>();
+        // Observe getSalesHistory() directly — it applies the current
+        // filter via Transformations.map so summary reflects filter
+        viewModel.getSalesHistory().observe(getViewLifecycleOwner(),
+                filteredSales -> {
             if (binding == null) return;
-            if (sales != null) {
-                adapter.setSales(sales);
+            if (filteredSales != null) updateSummary(filteredSales);
+        });
+
+        setupViewPager();
+        setupFilterChips();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Refresh sales data on every tab revisit
+        viewModel.fetchSalesHistory(salesLiveData);
+        // Refresh yesterday card every time we return to this tab
+        loadYesterdayCard();
+        // Refresh restock count
+        loadRestockCount();
+    }
+
+    private void loadRestockCount() {
+        com.google.firebase.auth.FirebaseUser user =
+                com.google.firebase.auth.FirebaseAuth.getInstance()
+                        .getCurrentUser();
+        if (user == null) return;
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("users").document(user.getUid())
+                .collection("restocks")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (binding == null) return;
+                    binding.summaryRestockCount.setText(
+                            "Restocks: " + snapshot.size());
+                });
+    }
+
+    private void loadYesterdayCard() {
+        com.google.firebase.auth.FirebaseUser user =
+                com.google.firebase.auth.FirebaseAuth.getInstance()
+                        .getCurrentUser();
+        if (user == null) return;
+        java.util.Calendar yCal = java.util.Calendar.getInstance();
+        yCal.add(java.util.Calendar.DAY_OF_YEAR, -1);
+        String yesterdayKey = new java.text.SimpleDateFormat(
+                "yyyy-MM-dd", java.util.Locale.getDefault())
+                .format(yCal.getTime());
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("users").document(user.getUid())
+                .collection("sales")
+                .whereEqualTo("dayKey", yesterdayKey)
+                .whereEqualTo("voided", false)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    if (binding == null) return;
+                    double total = 0;
+                    int count = 0;
+                    for (com.google.firebase.firestore.DocumentSnapshot doc
+                            : snap.getDocuments()) {
+                        com.example.inventory.model.SaleModel s =
+                                doc.toObject(com.example.inventory.model.SaleModel.class);
+                        if (s != null) {
+                            total += s.getTotalAmount();
+                            count++;
+                        }
+                    }
+                    binding.summaryYesterdayText.setText(
+                            String.format(java.util.Locale.getDefault(),
+                                    "Yesterday: ₹%.2f (%d sales)", total, count));
+                    binding.summaryYesterdayCard.setVisibility(
+                            android.view.View.VISIBLE);
+                });
+    }
+
+    private void setupViewPager() {
+        binding.viewPager.setAdapter(new FragmentStateAdapter(this) {
+            @NonNull
+            @Override
+            public Fragment createFragment(int position) {
+                return position == 0 ? new SalesListFragment() : new RestockHistoryFragment();
             }
+
+            @Override
+            public int getItemCount() {
+                return 2;
+            }
+        });
+
+        new TabLayoutMediator(binding.tabLayout, binding.viewPager, (tab, position) -> {
+            tab.setText(position == 0 ? "Sales" : "Restocks");
+        }).attach();
+    }
+
+    private void setupFilterChips() {
+        binding.chipAllTime.setOnClickListener(v -> {
+            viewModel.setFilter("all");
+            viewModel.fetchSalesHistory(salesLiveData);
+        });
+        binding.chipToday.setOnClickListener(v -> {
+            viewModel.setFilter("today");
+            viewModel.fetchSalesHistory(salesLiveData);
+        });
+        binding.chipThisWeek.setOnClickListener(v -> {
+            viewModel.setFilter("week");
+            viewModel.fetchSalesHistory(salesLiveData);
+        });
+        binding.chipThisMonth.setOnClickListener(v -> {
+            viewModel.setFilter("month");
+            viewModel.fetchSalesHistory(salesLiveData);
         });
     }
 
-    private void setupRecyclerView() {
-        adapter = new SalesAdapter(sale -> {
-            if (sale.isVoided()) return;
-            String todayKey = DateUtils.getTodayKey();
-            if (sale.getDayKey().equals(todayKey)) {
-                showVoidConfirmation(sale);
-            } else {
-                Toast.makeText(getContext(), "Only today's sales can be voided", Toast.LENGTH_SHORT).show();
-            }
-        });
-        binding.salesRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        binding.salesRecyclerView.setAdapter(adapter);
+    public void updateRestockCount(int count) {
+        if (binding == null) return;
+        binding.summaryRestockCount.setText("Restocks: " + count);
     }
 
-    private void showVoidConfirmation(SaleModel sale) {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Void Sale")
-                .setMessage("Are you sure you want to void this sale? Stock will be returned.")
-                .setPositiveButton("Void", (dialog, which) -> {
-                    viewModel.voidSale(sale);
-                    Toast.makeText(getContext(), "Sale voided", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+    public void updateSummary(List<SaleModel> filtered) {
+        if (binding == null) return;
+        double total = 0;
+        int count = 0;
+        for (SaleModel sale : filtered) {
+            if (!sale.isVoided()) {
+                total += sale.getTotalAmount();
+                count++;
+            }
+        }
+        binding.summaryTotalAmount.setText(
+                String.format(Locale.getDefault(), "₹%.2f", total));
+        binding.summaryTransactionCount.setText("Sales: " + count);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
-    }
-
-    private static class SalesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        private static final int VIEW_TYPE_HEADER = 0;
-        private static final int VIEW_TYPE_SALE = 1;
-
-        private List<Object> items = new ArrayList<>();
-        private final OnSaleClickListener listener;
-
-        interface OnSaleClickListener {
-            void onSaleClick(SaleModel sale);
-        }
-
-        SalesAdapter(OnSaleClickListener listener) {
-            this.listener = listener;
-        }
-
-        void setSales(List<SaleModel> sales) {
-            items.clear();
-            if (sales.isEmpty()) {
-                notifyDataSetChanged();
-                return;
-            }
-
-            String lastHeader = "";
-            for (SaleModel sale : sales) {
-                String currentHeader = DateUtils.getDayLabel(sale.getSoldAt());
-                if (!currentHeader.equals(lastHeader)) {
-                    items.add(currentHeader);
-                    lastHeader = currentHeader;
-                }
-                items.add(sale);
-            }
-            notifyDataSetChanged();
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return items.get(position) instanceof String ? VIEW_TYPE_HEADER : VIEW_TYPE_SALE;
-        }
-
-        @NonNull
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            if (viewType == VIEW_TYPE_HEADER) {
-                ItemDateHeaderBinding binding = ItemDateHeaderBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
-                return new HeaderViewHolder(binding);
-            } else {
-                ItemSaleBinding binding = ItemSaleBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
-                return new SaleViewHolder(binding);
-            }
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-            if (holder instanceof HeaderViewHolder) {
-                ((HeaderViewHolder) holder).binding.dateHeader.setText((String) items.get(position));
-            } else {
-                SaleModel sale = (SaleModel) items.get(position);
-                SaleViewHolder saleHolder = (SaleViewHolder) holder;
-                saleHolder.binding.saleProductName.setText(sale.getProductName());
-                saleHolder.binding.saleRelativeTime.setText(DateUtils.getRelativeTime(sale.getSoldAt()));
-                saleHolder.binding.saleAmount.setText(String.format(Locale.getDefault(), "₹%.2f", sale.getTotalAmount()));
-                
-                String quantity = sale.getQuantitySoldDecimal() > 0 ? 
-                    String.format("%.2f", sale.getQuantitySoldDecimal()) : 
-                    String.valueOf(sale.getQuantitySold());
-                saleHolder.binding.saleQuantity.setText(quantity + " units");
-
-                if (sale.isVoided()) {
-                    saleHolder.binding.saleProductName.setPaintFlags(saleHolder.binding.saleProductName.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-                    saleHolder.binding.saleAmount.setPaintFlags(saleHolder.binding.saleAmount.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-                    saleHolder.binding.saleAmount.setTextColor(0xFF757575);
-                } else {
-                    saleHolder.binding.saleProductName.setPaintFlags(saleHolder.binding.saleProductName.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
-                    saleHolder.binding.saleAmount.setPaintFlags(saleHolder.binding.saleAmount.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
-                    saleHolder.binding.saleAmount.setTextColor(0xFF00C896);
-                }
-
-                saleHolder.itemView.setOnClickListener(v -> listener.onSaleClick(sale));
-            }
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        static class HeaderViewHolder extends RecyclerView.ViewHolder {
-            ItemDateHeaderBinding binding;
-            HeaderViewHolder(ItemDateHeaderBinding binding) {
-                super(binding.getRoot());
-                this.binding = binding;
-            }
-        }
-
-        static class SaleViewHolder extends RecyclerView.ViewHolder {
-            ItemSaleBinding binding;
-            SaleViewHolder(ItemSaleBinding binding) {
-                super(binding.getRoot());
-                this.binding = binding;
-            }
-        }
     }
 }

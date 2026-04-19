@@ -5,10 +5,13 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Transformations;
 
 import com.example.inventory.model.ProductModel;
 import com.example.inventory.repository.ProductRepository;
+import com.example.inventory.utils.AppPrefs;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProductViewModel extends AndroidViewModel {
@@ -51,8 +54,27 @@ public class ProductViewModel extends AndroidViewModel {
         return repository.searchProducts(query);
     }
 
+    // Overload used by alerts screen with explicit threshold
+    public LiveData<List<ProductModel>> getLowStockProducts(int globalThreshold) {
+        // Get ALL products then filter — respects per-product custom thresholds
+        return Transformations.map(
+                repository.getAllProducts(),
+                allProducts -> {
+                    if (allProducts == null) return new ArrayList<>();
+                    List<ProductModel> result = new ArrayList<>();
+                    for (ProductModel p : allProducts) {
+                        if (p.isLowStock(globalThreshold)) {
+                            result.add(p);
+                        }
+                    }
+                    return result;
+                }
+        );
+    }
+
+    // Keep existing no-arg call working — uses global default
     public LiveData<List<ProductModel>> getLowStockProducts() {
-        return repository.getLowStockProducts();
+        return getLowStockProducts(AppPrefs.DEFAULT_THRESHOLD);
     }
 
     public LiveData<List<ProductModel>> getExpiringProducts() {

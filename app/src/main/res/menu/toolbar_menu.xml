@@ -2,8 +2,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/navigation_alerts"
+        android:icon="@android:drawable/ic_dialog_alert"
+        android:title="Alerts"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/navigation_settings"
         android:icon="@android:drawable/ic_menu_preferences"
         android:title="Settings"
-        app:showAsAction="always" />
+        app:showAsAction="ifRoom" />
 </menu>

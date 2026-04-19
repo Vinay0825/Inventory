@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ShopMate DSS</string>
+    <string name="app_name">ShopEase DSS</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_products">Inventory</string>
     <string name="title_history">Sales History</string>
@@ -10,4 +10,45 @@
     <string name="alert_stock_left">⚠ Only %1$s left (threshold: %2$d)</string>
     <string name="alert_suggest_restock">Suggest restocking %.1f units (7-day buffer)</string>
     <string name="alert_calculating">Calculating suggestion...</string>
+
+    <string name="edit">Edit</string>
+    <string name="shop">shop</string>
+    <string name="navigate">Navigate</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_products">Products</string>
+    <string name="nav_history">History</string>
+    <string name="nav_analytics">Analytics</string>
+    <string name="nav_settings">Settings</string>
+    <string name="today_sales">Today\'s Sales</string>
+    <string name="total_revenue">Total Revenue</string>
+    <string name="low_stock">Low Stock</string>
+    <string name="restock_now">Restock Now</string>
+    <string name="no_transactions">No transactions yet</string>
+    <string name="no_restocks">No restock records yet</string>
+    <string name="generate_barcode">Generate Barcode</string>
+    <string name="save_as_product">Save as Product</string>
+    <string name="product_name">Product Name</string>
+    <string name="barcode">Barcode</string>
+    <string name="price">Price</string>
+    <string name="stock">Stock</string>
+    <string name="category">Category</string>
+    <string name="supplier">Supplier</string>
+    <string name="unit">Unit</string>
+    <string name="sales_tab">Sales</string>
+    <string name="restocks_tab">Restocks</string>
+    <string name="void_sale">Void Sale</string>
+    <string name="void_confirm">Are you sure you want to void this sale?</string>
+    <string name="delete">Delete</string>
+    <string name="share">Share</string>
+    <string name="close">Close</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="edit_shop_name">Edit Shop Name</string>
+    <string name="language">Language</string>
+    <string name="select_language">Select Language</string>
+    <string name="export_sales">Export Sales</string>
+    <string name="loose_item_barcode">Loose Item Barcode</string>
+    <string name="add_product">Add Product</string>
+    <string name="total_amount">Total Amount</string>
+    <string name="transactions">Transactions</string>
 </resources>

@@ -1,16 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#00C896</color>
+    <!-- Backgrounds -->
+    <color name="background">#0F0E17</color>
+    <color name="surface">#1C1B2E</color>
+    <color name="bar_background">#1C1B2E</color>
+
+    <!-- Borders -->
+    <color name="outline_variant">#2D2B45</color>
+
+    <!-- Brand -->
+    <color name="primary">#A78BFA</color>
+    <color name="badge">#A78BFA</color>
+    <color name="on_primary">#0F0E17</color>
+    <color name="tonal_purple">#2D2159</color>
+    <color name="accent">#F59E0B</color>
+    <color name="on_accent">#0F0E17</color>
+    <color name="btn_filled">#6D56C1</color>
+
+    <!-- Semantic -->
+    <color name="success">#4ADE80</color>
+    <color name="warning">#FB923C</color>
+    <color name="error">#F87171</color>
+    <color name="action_blue">#60A5FA</color>
+
+    <!-- Text -->
+    <color name="text_primary">#F1F0FF</color>
+    <color name="text_secondary">#9CA3AF</color>
+
+    <!-- Input -->
+    <color name="input_background">#25233A</color>
+    <color name="input_focused_border">#A78BFA</color>
+
+    <!-- Skeleton -->
+    <color name="skeleton">#2D2B45</color>
+
+    <!-- Chip -->
+    <color name="chip_checked_bg">#F59E0B</color>
+    <color name="chip_unchecked_bg">#1C1B2E</color>
+    <color name="chip_checked_text">#0F0E17</color>
+    <color name="chip_unchecked_text">#9CA3AF</color>
+
+    <!-- Bottom Nav -->
+    <color name="bottom_nav_bg">#1C1B2E</color>
+    <color name="bottom_nav_active">#A78BFA</color>
+    <color name="bottom_nav_inactive">#9CA3AF</color>
+
+    <!-- Typo alias -->
+    <color name="backround">@color/background</color>
+
+    <!-- Legacy compat -->
+    <color name="background_dark">#0F0E17</color>
+    <color name="surface_dark">#1C1B2E</color>
+    <color name="on_surface_dark">#F1F0FF</color>
+    <color name="outline_dark">#2D2B45</color>
     <color name="primary_variant">#00A37B</color>
-    <color name="on_primary">#FFFFFF</color>
-
-    <color name="accent">#FF6B35</color>
-    <color name="on_accent">#FFFFFF</color>
-
-    <color name="background_dark">#0F1117</color>
-    <color name="surface_dark">#1A1D27</color>
-    <color name="on_surface_dark">#E6E1E5</color>
-
-    <color name="outline_dark">#938F99</color>
-    
 </resources>

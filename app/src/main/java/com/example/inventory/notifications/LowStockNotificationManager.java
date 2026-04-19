@@ -6,6 +6,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.content.pm.PackageManager;
+import androidx.core.content.ContextCompat;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -30,10 +32,14 @@ public class LowStockNotificationManager {
         }
     }
 
-    public static void sendLowStockNotification(Context context, String productName, int remainingStock) {
-        // Create an explicit intent for an Activity in your app. 
-        // The requirement says "Tap action opens LowStockAlertsFragment". 
-        // This is usually done via a deep link or an extra in MainActivity.
+    public static void sendLowStockNotification(Context context, String productName, String stockDisplay) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+        }
+
         Intent intent = new Intent(context, MainActivity.class);
         intent.putExtra("navigate_to", "low_stock_alerts");
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -42,7 +48,7 @@ public class LowStockNotificationManager {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_notify_error)
                 .setContentTitle("Low Stock Alert")
-                .setContentText(productName + " is running low! Only " + remainingStock + " left.")
+                .setContentText(productName + " is running low! Stock: " + stockDisplay)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
@@ -53,5 +59,76 @@ public class LowStockNotificationManager {
         } catch (SecurityException e) {
             // Handle permission error if needed
         }
+    }
+
+    // REPLACE entire scheduleDailyReminder method:
+    public static void scheduleDailyReminder(Context context) {
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 9);
+        calendar.set(java.util.Calendar.MINUTE, 0);
+        calendar.set(java.util.Calendar.SECOND, 0);
+        if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
+            calendar.add(java.util.Calendar.DAY_OF_YEAR, 1);
+        }
+        long delay = calendar.getTimeInMillis() - System.currentTimeMillis();
+
+        androidx.work.PeriodicWorkRequest reminderWork =
+                new androidx.work.PeriodicWorkRequest.Builder(
+                        com.example.inventory.notifications.DailyReminderWorker.class,
+                        1, java.util.concurrent.TimeUnit.DAYS)
+                        .setInitialDelay(delay, java.util.concurrent.TimeUnit.MILLISECONDS)
+                        .addTag("daily_reminder")
+                        .build();
+
+        androidx.work.WorkManager.getInstance(context)
+                .enqueueUniquePeriodicWork(
+                        "daily_low_stock_check",
+                        androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                        reminderWork);
+    }
+
+    public static void sendDailySummaryNotification(Context context,
+            int lowStockCount, double todayRevenue) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context,
+                    android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) return;
+        }
+
+        String SUMMARY_CHANNEL = "DAILY_SUMMARY";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel ch = new NotificationChannel(
+                SUMMARY_CHANNEL, "Daily Summary",
+                NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationManager nm =
+                context.getSystemService(NotificationManager.class);
+            if (nm != null) nm.createNotificationChannel(ch);
+        }
+
+        Intent intent = new Intent(context, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+            | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pi = PendingIntent.getActivity(
+            context, 0, intent, PendingIntent.FLAG_IMMUTABLE);
+
+        String msg = lowStockCount > 0
+            ? lowStockCount + " items low on stock. Today's revenue: ₹"
+                + String.format("%.2f", todayRevenue)
+            : "All stock levels OK. Today's revenue: ₹"
+                + String.format("%.2f", todayRevenue);
+
+        NotificationCompat.Builder builder =
+            new NotificationCompat.Builder(context, SUMMARY_CHANNEL)
+                .setSmallIcon(android.R.drawable.stat_notify_chat)
+                .setContentTitle("ShopEase Pro — Daily Summary")
+                .setContentText(msg)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pi)
+                .setAutoCancel(true);
+
+        try {
+            NotificationManagerCompat.from(context)
+                .notify(3001, builder.build());
+        } catch (SecurityException e) { /* permission not granted */ }
     }
 }
